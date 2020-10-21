@@ -1,0 +1,161 @@
+defmodule Catena.Core.Repeats.Weekly do
+  alias Catena.Core.Repeats.Validators
+  alias Catena.Core.{Event, Utils}
+  # FREQ=WEEKLY;INTERVAL=1;BYDAY=SU;COUNT=5
+
+  @enforce_keys ~w[interval days]a
+  defstruct ~w[interval days count until]a
+
+  @type weekday :: :su | :mo | :tu | :we | :th | :fr | :sa
+  @type t :: %{
+          interval: integer,
+          days: [weekday, ...],
+          count: nil | integer,
+          until: nil | NaiveDateTime.t()
+        }
+
+  @spec new(non_neg_integer(), weekday, keyword) :: {:error, any} | t
+  @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
+  @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
+
+  def new(interval, day, opts \\ []) do
+    get_optional_params_then_validate_and_create(%{interval: interval, days: day}, opts)
+  end
+
+  def next(%__MODULE__{interval: n, days: [day]}, start_date) do
+    weekday_of_day = weekday_offset(day)
+
+    next_date =
+      case Utils.weekday(start_date) == weekday_of_day do
+        true ->
+          NaiveDateTime.add(start_date, Utils.days_to_seconds(7 * n))
+
+        false ->
+          advance_date_to_next_weekday(start_date, weekday_of_day, n)
+      end
+
+    [next_date]
+  end
+
+  def next(%__MODULE__{days: days} = rule, start_date) do
+    weekdays = Enum.map(days, &weekday_offset/1)
+    date_weekday = Utils.weekday(start_date)
+
+    some_index =
+      Enum.find_index(weekdays, fn weekday -> weekday > date_weekday end)
+      |> case do
+        # Falls outside of days, reset to first weekday
+        nil -> 0
+        some_index -> some_index
+      end
+
+    do_next(%{rule | days: weekdays}, start_date, [], some_index) |> Enum.reverse()
+  end
+
+  defp do_next(%__MODULE__{days: d}, _date, acc, _idx) when length(d) == length(acc), do: acc
+
+  defp do_next(%__MODULE__{days: weekdays, interval: n} = rule, start_date, acc, current_index) do
+    next_current_index = current_index |> Kernel.+(1) |> rem(length(weekdays))
+    next_date = advance_date_to_next_weekday(start_date, Enum.at(weekdays, current_index), n)
+
+    do_next(rule, next_date, [next_date | acc], next_current_index)
+  end
+
+  def next_occurences(%Event{repeats: %__MODULE__{count: nil}} = event, num),
+    do: generate_next_occurences(event, num)
+
+  def next_occurences(%Event{repeats: %__MODULE__{count: num}} = event, _num),
+    do: generate_next_occurences(event, num)
+
+  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: until} = rule} = event, num) do
+    %Event{end_date: end_date} = event
+
+    dates =
+      {num, event}
+      |> Stream.unfold(fn
+        {1, _event} ->
+          nil
+
+        {n, event = %{start_date: prev_date}} ->
+          next_dates = next(rule, prev_date)
+          new_acc = n |> Kernel.-(length(next_dates)) |> max(1)
+
+          with true <- is_nil(until) do
+            {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
+          else
+            false ->
+              next_dates = Enum.filter(next_dates, &(Utils.earlier?(&1, until) or &1 == until))
+
+              case next_dates do
+                [] -> nil
+                _ -> {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
+              end
+          end
+      end)
+      |> Enum.to_list()
+      |> List.flatten()
+
+    case end_date do
+      nil -> Enum.take(dates, num)
+      end_date -> Enum.filter(dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
+    end
+  end
+
+  defp get_optional_params_then_validate_and_create(attrs, opts) do
+    opts
+    |> Keyword.has_key?(:count)
+    |> case do
+      true -> %{count: Keyword.get(opts, :count)}
+      false -> %{until: Keyword.get(opts, :until)}
+    end
+    |> Map.merge(attrs)
+    |> validate_and_create
+  end
+
+  defp validate_and_create(%{} = attrs) do
+    attrs
+    |> Validators.validate([&Validators.validate_day/1])
+    |> case do
+      :ok -> struct!(__MODULE__, attrs)
+      err -> err
+    end
+  end
+
+  defp advance_date_to_next_weekday(date, target_weekday, interval) do
+    weekday_of_date = Utils.weekday(date)
+
+    days_between =
+      weekday_of_date
+      |> Stream.unfold(fn
+        ^target_weekday ->
+          nil
+
+        weekday ->
+          with false <- weekday == 0 && target_weekday == 7 do
+            {1, weekday |> Kernel.+(1) |> rem(7)}
+          else
+            true -> nil
+          end
+      end)
+      |> Enum.sum()
+
+    seconds = Utils.days_to_seconds(days_between)
+    next_date = NaiveDateTime.add(date, seconds)
+
+    seconds =
+      case Utils.same_week?(next_date, date) do
+        true -> seconds
+        false -> seconds + Utils.days_to_seconds(7 * (interval - 1))
+      end
+
+    NaiveDateTime.add(date, seconds)
+  end
+
+  defp weekday_offset(:su), do: 1
+  defp weekday_offset(:mo), do: 2
+  defp weekday_offset(:tu), do: 3
+  defp weekday_offset(:we), do: 4
+  defp weekday_offset(:th), do: 5
+  defp weekday_offset(:fr), do: 6
+  defp weekday_offset(:sa), do: 7
+end
