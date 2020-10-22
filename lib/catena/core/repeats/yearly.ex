@@ -64,10 +64,10 @@ defmodule Catena.Core.Repeats.Yearly do
 
   def new(interval, month, opts \\ []) do
     opts
-    |> Keyword.has_key?(:day)
+    |> Keyword.has_key?(:monthdays)
     |> case do
-      true -> %{days: Keyword.get(opts, :day)}
-      false -> %{monthdays: Keyword.get(opts, :monthday)}
+      false -> %{days: Keyword.get(opts, :days)}
+      true -> %{monthdays: Keyword.get(opts, :monthdays)}
     end
     |> Map.put(:interval, interval)
     |> Map.put(:month, month)
@@ -99,39 +99,31 @@ defmodule Catena.Core.Repeats.Yearly do
   def next_occurences(%Event{repeats: %__MODULE__{count: num}} = event, _num),
     do: generate_next_occurences(event, num)
 
-  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: until} = rule} = event, num) do
-    %Event{end_date: end_date} = event
+  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
+    {num, event}
+    |> Stream.unfold(fn
+      {0, _event} ->
+        nil
 
-    dates =
-      {num, event}
-      |> Stream.unfold(fn
-        {1, _event} ->
-          nil
+      {n, event = %{start_date: prev_date}} ->
+        next_dates = next(rule, prev_date)
+        new_acc = n |> Kernel.-(length(next_dates)) |> max(0)
 
-        {n, event = %{start_date: prev_date}} ->
-          next_dates = next(rule, prev_date)
-          new_acc = n |> Kernel.-(length(next_dates)) |> max(1)
+        with true <- is_nil(end_date) do
+          {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
+        else
+          false ->
+            next_dates =
+              Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
 
-          with true <- is_nil(until) do
-            {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
-          else
-            false ->
-              next_dates = Enum.filter(next_dates, &(Utils.earlier?(&1, until) or &1 == until))
-
-              case next_dates do
-                [] -> nil
-                _ -> {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
-              end
-          end
-      end)
-      |> Enum.filter(&(!is_nil(&1)))
-      |> Enum.to_list()
-      |> List.flatten()
-
-    case end_date do
-      nil -> Enum.take(dates, num)
-      end_date -> Enum.filter(dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
-    end
+            case next_dates do
+              [] -> nil
+              _ -> {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
+            end
+        end
+    end)
+    |> Enum.to_list()
+    |> List.flatten()
   end
 
   defp do_next(%__MODULE__{monthdays: d}, _date, acc, _idx) when length(d) == length(acc), do: acc

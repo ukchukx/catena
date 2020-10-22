@@ -12,7 +12,7 @@ defmodule Catena.Core.Habit do
         }
 
   @spec new(String.t(), User.t(), Event.t(), keyword) :: t()
-  @spec record_for_date([HabitHistory.t()], NaiveDateTime.t()) :: HabitHistory.t() | nil
+  @spec history_for_date([HabitHistory.t()], NaiveDateTime.t()) :: HabitHistory.t() | nil
 
   def new(title, user, event, opts \\ []) do
     attrs = %{
@@ -26,7 +26,14 @@ defmodule Catena.Core.Habit do
     struct!(__MODULE__, attrs)
   end
 
-  def record_for_date(habit_history, date), do: Enum.find(habit_history, &(&1.date == date))
+  def history_for_date(habit_history, date) do
+    %{year: y, month: m, day: d} = date
+
+    Enum.find(habit_history, fn
+      %{date: %{year: ^y, month: ^m, day: ^d}} -> true
+      _ -> false
+    end)
+  end
 
   def dates(%__MODULE__{event: %Event{repeats: nil} = event}, start_date, end_date) do
     cond do
@@ -36,7 +43,7 @@ defmodule Catena.Core.Habit do
     end
   end
 
-  def dates(%__MODULE__{event: %Event{} = event}, start_date, end_date) do
+  def dates(%__MODULE__{event: %Event{repeats: repeats} = event}, start_date, end_date) do
     # if event date is later than start date, use event date
     # if event date is earlier than start date, use start date
     # use start date
@@ -47,17 +54,20 @@ defmodule Catena.Core.Habit do
 
         false ->
           # Unroll event to get the last date <= start_date
-          %{event | end_date: start_date} |> unroll() |> List.last()
+          %{event | repeats: %{repeats | until: start_date}} |> unroll() |> List.last()
       end
 
     end_date =
       cond do
-        is_nil(event.end_date) -> end_date
-        Utils.earlier?(end_date, event.end_date) -> end_date
-        true -> event.end_date
+        is_nil(repeats.until) -> end_date
+        Utils.earlier?(end_date, repeats.until) -> end_date
+        true -> repeats.end_date
       end
 
-    unroll(%{event | end_date: end_date, start_date: start_date})
+    case Utils.earlier?(end_date, start_date) do
+      true -> []
+      false -> unroll(%{event | repeats: %{repeats | until: end_date}, start_date: start_date})
+    end
   end
 
   defp unroll(event) do
@@ -69,10 +79,12 @@ defmodule Catena.Core.Habit do
       event ->
         case Event.next_occurences(event, 380) do
           [] -> nil
+          [date] -> {[date], nil}
           dates -> {dates, %{event | start_date: List.last(dates)}}
         end
     end)
     |> Enum.to_list()
     |> List.flatten()
+    |> Enum.uniq()
   end
 end

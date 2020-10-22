@@ -18,8 +18,8 @@ defmodule Catena.Core.Repeats.Weekly do
   @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
   @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
 
-  def new(interval, day, opts \\ []) do
-    get_optional_params_then_validate_and_create(%{interval: interval, days: day}, opts)
+  def new(interval, days, opts \\ []) do
+    get_optional_params_then_validate_and_create(%{interval: interval, days: days}, opts)
   end
 
   def next(%__MODULE__{interval: n, days: [day]}, start_date) do
@@ -67,38 +67,31 @@ defmodule Catena.Core.Repeats.Weekly do
   def next_occurences(%Event{repeats: %__MODULE__{count: num}} = event, _num),
     do: generate_next_occurences(event, num)
 
-  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: until} = rule} = event, num) do
-    %Event{end_date: end_date} = event
+  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
+    {num, event}
+    |> Stream.unfold(fn
+      {0, _event} ->
+        nil
 
-    dates =
-      {num, event}
-      |> Stream.unfold(fn
-        {1, _event} ->
-          nil
+      {n, event = %{start_date: prev_date}} ->
+        next_dates = next(rule, prev_date)
+        new_acc = n |> Kernel.-(length(next_dates)) |> max(0)
 
-        {n, event = %{start_date: prev_date}} ->
-          next_dates = next(rule, prev_date)
-          new_acc = n |> Kernel.-(length(next_dates)) |> max(1)
+        with true <- is_nil(end_date) do
+          {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
+        else
+          false ->
+            next_dates =
+              Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
 
-          with true <- is_nil(until) do
-            {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
-          else
-            false ->
-              next_dates = Enum.filter(next_dates, &(Utils.earlier?(&1, until) or &1 == until))
-
-              case next_dates do
-                [] -> nil
-                _ -> {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
-              end
-          end
-      end)
-      |> Enum.to_list()
-      |> List.flatten()
-
-    case end_date do
-      nil -> Enum.take(dates, num)
-      end_date -> Enum.filter(dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
-    end
+            case next_dates do
+              [] -> nil
+              _ -> {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
+            end
+        end
+    end)
+    |> Enum.to_list()
+    |> List.flatten()
   end
 
   defp get_optional_params_then_validate_and_create(attrs, opts) do

@@ -1,13 +1,13 @@
 defmodule Catena.Core.HabitHistory do
   alias Catena.Core.{Habit, Utils}
 
-  defstruct ~w[id habit date done?]a
+  defstruct ~w[id habit date done]a
 
   @type t :: %{
           id: binary,
           habit: Habit.t(),
           date: NaiveDateTime.t(),
-          done?: boolean
+          done: boolean
         }
 
   @spec new(Habit.t(), NaiveDateTime.t(), keyword) :: t()
@@ -16,7 +16,7 @@ defmodule Catena.Core.HabitHistory do
     attrs = %{
       habit: habit,
       date: date,
-      done?: Keyword.get(opts, :done, false),
+      done: Keyword.get(opts, :done, false),
       id: Keyword.get(opts, :id, Utils.new_id())
     }
 

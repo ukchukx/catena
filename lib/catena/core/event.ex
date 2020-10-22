@@ -2,15 +2,14 @@ defmodule Catena.Core.Event do
   alias Catena.Core.Repeats.{Daily, Weekly, Monthly, Yearly}
   alias Catena.Core.Utils
 
-  defstruct ~w[id repeats excludes start_date end_date]a
+  defstruct ~w[id repeats excludes start_date]a
 
   @type repeat :: Daily.t() | Weekly.t() | Monthly.t() | Yearly.t()
   @type t :: %{
           id: binary,
           repeats: nil | repeat,
           excludes: [NaiveDateTime.t()],
-          start_date: NaiveDateTime.t(),
-          end_date: NaiveDateTime.t() | nil
+          start_date: NaiveDateTime.t()
         }
 
   @spec new(NaiveDateTime.t(), keyword) :: t()
@@ -20,7 +19,6 @@ defmodule Catena.Core.Event do
     attrs = %{
       id: Keyword.get(opts, :id, Utils.new_id()),
       repeats: Keyword.get(opts, :repeats),
-      end_date: Keyword.get(opts, :end_date),
       excludes: Keyword.get(opts, :excludes, []),
       start_date: start_date
     }

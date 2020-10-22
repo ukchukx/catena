@@ -32,9 +32,7 @@ defmodule Catena.Core.Repeats.Daily do
     generate_next_occurences(event, num)
   end
 
-  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: until} = rule} = event, num) do
-    %{end_date: end_date} = event
-
+  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
     dates =
       {num, event}
       |> Stream.unfold(fn
@@ -44,11 +42,11 @@ defmodule Catena.Core.Repeats.Daily do
         {n, event = %{start_date: prev_date}} ->
           next_date = next(rule, prev_date)
 
-          with true <- is_nil(until) do
+          with true <- is_nil(end_date) do
             {next_date, {n - 1, %{event | start_date: next_date}}}
           else
             false ->
-              case Utils.earlier?(next_date, until) or next_date == until do
+              case Utils.earlier?(next_date, end_date) or next_date == end_date do
                 true -> {next_date, {n - 1, %{event | start_date: next_date}}}
                 false -> nil
               end
@@ -56,10 +54,7 @@ defmodule Catena.Core.Repeats.Daily do
       end)
       |> Enum.to_list()
 
-    case end_date do
-      nil -> Enum.take(dates, num)
-      end_date -> Enum.filter(dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
-    end
+    [event.start_date | dates]
   end
 
   defp get_optional_params_validate_and_create(attrs, opts) do
