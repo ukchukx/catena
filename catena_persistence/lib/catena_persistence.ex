@@ -2,6 +2,19 @@ defmodule CatenaPersistence do
   import Ecto.Query, only: [from: 2]
   alias CatenaPersistence.{Habit, HabitHistory, User, Repo}
 
+
+  @spec save_user(struct, function) :: struct
+  @spec save_habit_history(struct, function) :: struct
+  @spec save_habit(struct, function) :: struct
+  @spec users(boolean) :: [map]
+  @spec get_user(binary) :: nil | map
+  @spec get_user_by_email(binary) :: nil | map
+  @spec get_habit(binary) :: nil | map
+  @spec get_habit_history(binary) :: nil | map
+  @spec user_habits(binary) :: [map]
+  @spec habit_history_for_habit(binary) :: [map]
+  @spec habit_history_for_user(binary) :: [map]
+
   def save_user(user, id_fn) do
     case save(User, User.from_model(user), id_fn) do
       nil -> user

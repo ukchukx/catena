@@ -1,9 +1,10 @@
 defmodule Catena do
-  alias Catena.Boundary.{ScheduleManager, UserManager}
-  alias Catena.Core.{Event, Habit, Schedule, User, Utils}
+  alias Catena.Boundary.{ScheduleManager, UserManager, UserValidator}
+  alias Catena.Core.{Event, Habit, HabitHistory, Schedule, User, Utils}
 
   require Logger
 
+  @spec start :: :ok
   def start do
     persistence_module().users()
     |> Enum.each(fn map = %{email: email} ->
@@ -11,6 +12,7 @@ defmodule Catena do
     end)
   end
 
+  @spec start_user_process(User.t()) :: User.t()
   def start_user_process(user = %User{id: id}) when not is_nil(id) do
     UserManager.start_user(user)
 
@@ -24,6 +26,7 @@ defmodule Catena do
     user
   end
 
+  @spec start_schedule_process(Habit.t()) :: Habit.t()
   def start_schedule_process(habit = %Habit{id: id, user: user}) when not is_nil(id) do
     history =
       persistence_module().habit_history_for_user(id)
@@ -37,18 +40,22 @@ defmodule Catena do
     habit
   end
 
+  @spec new_user(binary, binary) :: keyword | {:error, :email_exists} | User.t()
   def new_user(email, password) do
-    with nil <- persistence_module().get_user_by_email(email) do
+    with nil <- persistence_module().get_user_by_email(email),
+         :ok <- UserValidator.errors(%{email: email, password: password}) do
       email
       |> User.new(username: email, password: Utils.hash_password(password))
       |> save_user
       |> start_user_process
     else
+      errors when is_list(errors) -> errors
       _user -> {:error, :email_exists}
     end
   end
 
-  def new_habit(title, %User{} = user, %Event{} = event, opts \\ []) do
+  @spec new_habit(binary, User.t(), Event.t(), keyword) :: Habit.t()
+  def new_habit(title, %User{} = user, %Event{} = event, opts \\ []) when is_binary(title) do
     start_schedule_process_fn =
       Keyword.get(opts, :start_schedule_process_fn, &start_schedule_process/1)
 
@@ -58,6 +65,7 @@ defmodule Catena do
     |> start_schedule_process_fn.()
   end
 
+  @spec mark_pending_habit(binary, NaiveDateTime.t()) :: nil | HabitHistory.t()
   def mark_pending_habit(id, date) do
     case ScheduleManager.mark_pending(id, date) do
       :not_running ->
@@ -74,6 +82,7 @@ defmodule Catena do
     end
   end
 
+  @spec mark_past_habit(binary, NaiveDateTime.t()) :: nil | HabitHistory.t()
   def mark_past_habit(id, date) do
     case ScheduleManager.mark_past(id, date) do
       :not_running ->
@@ -90,13 +99,17 @@ defmodule Catena do
     end
   end
 
+  @spec save_user(User.t()) :: User.t()
   def save_user(user), do: persistence_module().save_user(user, &Utils.new_id/0)
 
+  @spec save_habit(Habit.t()) :: Habit.t()
   def save_habit(habit), do: persistence_module().save_habit(habit, &Utils.new_id/0)
 
+  @spec save_habit_history(HabitHistory.t()) :: HabitHistory.t()
   def save_habit_history(history),
     do: persistence_module().save_habit_history(history, &Utils.new_id/0)
 
+  @spec persistence_module :: atom
   def persistence_module, do: Application.get_env(:catena, :persistence_module)
 
   #
