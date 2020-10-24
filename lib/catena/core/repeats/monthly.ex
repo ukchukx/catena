@@ -57,9 +57,17 @@ defmodule Catena.Core.Repeats.Monthly do
   @enforce_keys ~w[interval]a
   defstruct ~w[interval days monthdays count until]a
 
+  @spec inflate(binary) :: {:error, any} | t
   @spec new(non_neg_integer(), keyword) :: {:error, any} | t
   @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
   @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
+
+  def inflate("FREQ=MONTHLY;" <> str) do
+    params = Utils.repetition_string_to_keyword(str)
+    new(params[:interval], params)
+  end
+
+  def inflate(_str), do: {:error, "not a monthly rule"}
 
   def new(interval, opts \\ []) do
     opts

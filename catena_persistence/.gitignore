@@ -1,6 +1,5 @@
 # The directory Mix will write compiled artifacts to.
 /_build/
-/.elixir_ls
 
 # If you run "mix test --cover", coverage assets end up here.
 /cover/
@@ -21,5 +20,5 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-catena-*.tar
-.env*
+catena_persistence-*.tar
+

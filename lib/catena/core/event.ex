@@ -1,12 +1,10 @@
 defmodule Catena.Core.Event do
   alias Catena.Core.Repeats.{Daily, Weekly, Monthly, Yearly}
-  alias Catena.Core.Utils
 
-  defstruct ~w[id repeats excludes start_date]a
+  defstruct ~w[repeats excludes start_date]a
 
   @type repeat :: Daily.t() | Weekly.t() | Monthly.t() | Yearly.t()
   @type t :: %{
-          id: binary,
           repeats: nil | repeat,
           excludes: [NaiveDateTime.t()],
           start_date: NaiveDateTime.t()
@@ -17,7 +15,6 @@ defmodule Catena.Core.Event do
 
   def new(start_date, opts \\ []) do
     attrs = %{
-      id: Keyword.get(opts, :id, Utils.new_id()),
       repeats: Keyword.get(opts, :repeats),
       excludes: Keyword.get(opts, :excludes, []),
       start_date: start_date
@@ -40,6 +37,15 @@ defmodule Catena.Core.Event do
 
   def next_occurences(%__MODULE__{repeats: %Yearly{}} = event, num),
     do: do_next_occurences(Yearly, event, num)
+
+  def inflate_repetition(str) do
+    [Daily, Weekly, Monthly, Yearly]
+    |> Enum.map(& &1.inflate(str))
+    |> Enum.find(fn
+      {:error, _} -> false
+      _ -> true
+    end)
+  end
 
   defp do_next_occurences(mod, event, num), do: apply(mod, :next_occurences, [event, num])
 end

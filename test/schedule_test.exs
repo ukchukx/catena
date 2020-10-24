@@ -1,5 +1,5 @@
 defmodule ScheduleTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use ScheduleBuilders
   use ScheduleAssertions
 

@@ -58,9 +58,17 @@ defmodule Catena.Core.Repeats.Yearly do
           until: nil | NaiveDateTime.t()
         }
 
+  @spec inflate(binary) :: {:error, any} | t
   @spec new(non_neg_integer(), month, keyword) :: {:error, any} | t
   @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
   @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
+
+  def inflate("FREQ=YEARLY;" <> str) do
+    params = Utils.repetition_string_to_keyword(str)
+    new(params[:interval], params[:month], params)
+  end
+
+  def inflate(_str), do: {:error, "not a yearly rule"}
 
   def new(interval, month, opts \\ []) do
     opts

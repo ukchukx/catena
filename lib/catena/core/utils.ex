@@ -1,4 +1,6 @@
 defmodule Catena.Core.Utils do
+  alias Comeonin.Bcrypt
+
   @spec earlier?(NaiveDateTime.t(), NaiveDateTime.t()) :: boolean
   @spec days_to_seconds(non_neg_integer()) :: non_neg_integer
   @spec weekday(NaiveDateTime.t()) :: 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -16,6 +18,9 @@ defmodule Catena.Core.Utils do
   @spec new_id :: binary
   @spec string_id_to_binary(String.t()) :: binary
   @spec binary_id_to_string(binary) :: String.t()
+  @spec repetition_string_to_keyword(binary) :: keyword
+  @spec hash_password(binary) :: binary
+  @spec validate_password(binary, binary) :: boolean
 
   def earlier?(dt1, dt2), do: NaiveDateTime.diff(dt1, dt2) < 0
 
@@ -71,4 +76,40 @@ defmodule Catena.Core.Utils do
   def string_id_to_binary(id), do: UUID.string_to_binary!(id)
 
   def binary_id_to_string(binary_id), do: UUID.binary_to_string!(binary_id)
+
+  def repetition_string_to_keyword(str) do
+    str
+    |> String.split(";", trim: true)
+    |> Enum.map(fn
+      "INTERVAL=" <> interval ->
+        [interval: String.to_integer(interval)]
+
+      "COUNT=" <> count ->
+        [count: String.to_integer(count)]
+
+      "UNTIL=" <> until ->
+        [until: NaiveDateTime.from_iso8601!(until)]
+
+      "BYMONTH=" <> month ->
+        [month: String.to_integer(month)]
+
+      "BYDAY=" <> days ->
+        [
+          days:
+            days
+            |> String.downcase()
+            |> String.split(",", trim: true)
+            |> Enum.map(&String.to_atom/1)
+        ]
+
+      "BYMONTHDAY=" <> days ->
+        [monthdays: days |> String.split(",", trim: true) |> Enum.map(&String.to_integer/1)]
+    end)
+    |> List.flatten()
+    |> Keyword.new()
+  end
+
+  def hash_password(password) when is_binary(password), do: Bcrypt.hashpwsalt(password)
+
+  def validate_password(password, hash), do: Bcrypt.checkpw(password, hash)
 end

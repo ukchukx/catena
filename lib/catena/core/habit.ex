@@ -1,12 +1,11 @@
 defmodule Catena.Core.Habit do
   alias Catena.Core.{HabitHistory, Event, User, Utils}
 
-  defstruct ~w[user id title description event]a
+  defstruct ~w[user id title event]a
 
   @type t :: %{
           id: binary,
           title: String.t(),
-          description: String.t(),
           user: User.t(),
           event: Event.t()
         }
@@ -19,8 +18,7 @@ defmodule Catena.Core.Habit do
       title: title,
       user: user,
       event: event,
-      id: Keyword.get(opts, :id, Utils.new_id()),
-      description: Keyword.get(opts, :description)
+      id: Keyword.get(opts, :id)
     }
 
     struct!(__MODULE__, attrs)

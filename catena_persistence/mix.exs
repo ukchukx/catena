@@ -1,9 +1,9 @@
-defmodule Catena.MixProject do
+defmodule CatenaPersistence.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :catena,
+      app: :catena_persistence,
       version: "1.0.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
@@ -16,28 +16,24 @@ defmodule Catena.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Catena.Application, []}
+      mod: {CatenaPersistence.Application, []}
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:bcrypt_elixir, "~> 1.0"},
-      {:comeonin, "~> 4.0"},
-      {:catena_persistence, path: "./catena_persistence"},
-      {:elixir_uuid, "~> 1.2"}
+      {:confex, "~> 3.4.0"},
+      {:ecto_sql, "~> 3.5.1"},
+      {:myxql, "~> 0.4.3"}
     ]
   end
 
   defp aliases do
     [
-      test: [
-        "ecto.drop --quiet",
-        "ecto.create --quiet",
-        "ecto.migrate --quiet",
-        "test"
-      ]
+      setup: ["deps.get", "ecto.create", "ecto.migrate"],
+      reset: ["ecto.drop", "setup"],
+      test:  ["ecto.drop --quiet", "ecto.create --quiet", "ecto.migrate --quiet", "test"]
     ]
   end
 end

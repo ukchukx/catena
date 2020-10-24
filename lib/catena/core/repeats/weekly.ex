@@ -14,9 +14,17 @@ defmodule Catena.Core.Repeats.Weekly do
           until: nil | NaiveDateTime.t()
         }
 
+  @spec inflate(binary) :: {:error, any} | t
   @spec new(non_neg_integer(), weekday, keyword) :: {:error, any} | t
   @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
   @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
+
+  def inflate("FREQ=WEEKLY;" <> str) do
+    params = Utils.repetition_string_to_keyword(str)
+    new(params[:interval], params[:days], params)
+  end
+
+  def inflate(_str), do: {:error, "not a weekly rule"}
 
   def new(interval, days, opts \\ []) do
     get_optional_params_then_validate_and_create(%{interval: interval, days: days}, opts)

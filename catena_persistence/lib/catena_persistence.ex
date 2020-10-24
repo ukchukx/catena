@@ -1,0 +1,100 @@
+defmodule CatenaPersistence do
+  import Ecto.Query, only: [from: 2]
+  alias CatenaPersistence.{Habit, HabitHistory, User, Repo}
+
+  def save_user(user, id_fn) do
+    case save(User, User.from_model(user), id_fn) do
+      nil -> user
+      %{id: id} -> %{user | id: id}
+    end
+  end
+
+  def save_habit_history(history, id_fn) do
+    case save(HabitHistory, HabitHistory.from_model(history), id_fn) do
+      nil -> history
+      %{id: id} -> %{history | id: id}
+    end
+  end
+
+  def save_habit(habit, id_fn) do
+    case save(Habit, Habit.from_model(habit), id_fn) do
+      nil -> habit
+      %{id: id} -> %{habit | id: id}
+    end
+  end
+
+  def users(archived \\ false),
+    do: User |> from(where: [archived: ^archived]) |> Repo.all |> Enum.map(&User.to_map/1)
+
+  def get_user(id) do
+    case Repo.get(User, id) do
+      nil -> nil
+      record -> User.to_map(record)
+    end
+  end
+
+  def get_user_by_email(email) do
+    case Repo.get_by(User, email: email) do
+      nil -> nil
+      record -> User.to_map(record)
+    end
+  end
+
+  def get_habit(id) do
+    case Repo.get(Habit, id) do
+      nil -> nil
+      record -> Habit.to_map(record)
+    end
+  end
+
+  def get_habit_history(id) do
+    case Repo.get(HabitHistory, id) do
+      nil -> nil
+      record -> HabitHistory.to_map(record)
+    end
+  end
+
+  def user_habits(user_id) do
+    Habit
+    |> from(where: [user_id: ^user_id])
+    |> Repo.all
+    |> Enum.map(&Habit.to_map/1)
+  end
+
+  def habit_history_for_habit(habit_id) do
+    HabitHistory
+    |> from(where: [habit_id: ^habit_id])
+    |> Repo.all
+    |> Enum.map(&HabitHistory.to_map/1)
+  end
+
+  def habit_history_for_user(user_id) do
+    HabitHistory
+    |> from(where: [user_id: ^user_id])
+    |> Repo.all
+    |> Enum.map(&HabitHistory.to_map/1)
+  end
+
+  defp save(schema, model = %{id: id}, id_fn) do
+    case id do
+      nil ->
+        %{model | id: id_fn.()}
+        |> schema.changeset
+        |> Repo.insert
+        |> case do
+          {:ok, record} -> record
+          _  -> nil
+        end
+      _ ->
+        model
+        |> schema.changeset
+        |> Repo.update
+        |> case do
+          {:ok, record} -> record
+          _ -> nil
+        end
+
+    end
+  end
+
+end

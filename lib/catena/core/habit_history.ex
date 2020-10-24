@@ -1,5 +1,5 @@
 defmodule Catena.Core.HabitHistory do
-  alias Catena.Core.{Habit, Utils}
+  alias Catena.Core.Habit
 
   defstruct ~w[id habit date done]a
 
@@ -17,7 +17,7 @@ defmodule Catena.Core.HabitHistory do
       habit: habit,
       date: date,
       done: Keyword.get(opts, :done, false),
-      id: Keyword.get(opts, :id, Utils.new_id())
+      id: Keyword.get(opts, :id)
     }
 
     struct!(__MODULE__, attrs)
