@@ -40,9 +40,9 @@ defmodule Catena do
     habit
   end
 
-  @spec new_user(binary, binary) :: keyword | {:error, :email_exists} | User.t()
+  @spec new_user(binary, binary) :: keyword | User.t()
   def new_user(email, password) do
-    with nil <- persistence_module().get_user_by_email(email),
+    with nil <- get_user(email: email),
          :ok <- UserValidator.errors(%{email: email, password: password}) do
       email
       |> User.new(username: email, password: Utils.hash_password(password))
@@ -50,7 +50,28 @@ defmodule Catena do
       |> start_user_process
     else
       errors when is_list(errors) -> errors
-      _user -> {:error, :email_exists}
+      _user -> [{:email, "has been taken"}]
+    end
+  end
+
+  @spec update_user(binary, map) :: keyword | User.t()
+  def update_user(id, params) do
+    with %{email: email} <- get_user(id: id),
+         :ok <- UserValidator.errors(Map.put_new(params, :email, email)) do
+      params =
+        params
+        |> Map.get(:password)
+        |> case do
+          nil -> params
+          password -> %{params | password: Utils.hash_password(password)}
+        end
+
+      id
+      |> UserManager.update(params)
+      |> save_user
+    else
+      errors when is_list(errors) -> errors
+      nil -> [{:user, "does not exist"}]
     end
   end
 
@@ -69,15 +90,15 @@ defmodule Catena do
   def mark_pending_habit(id, date) do
     case ScheduleManager.mark_pending(id, date) do
       :not_running ->
-        Logger.warn("Habit #{id} is not running", habit: id)
+        Logger.warn("Habit #{id} is not running")
         nil
 
       nil ->
-        Logger.info("Habit #{id} is not pending on #{date}", habit: id)
+        Logger.info("Habit #{id} is not pending on #{date}")
         nil
 
       history ->
-        Logger.info("Pending habit #{id} marked on #{date}", habit: id)
+        Logger.info("Pending habit #{id} marked on #{date}")
         save_habit_history(history)
     end
   end
@@ -86,16 +107,57 @@ defmodule Catena do
   def mark_past_habit(id, date) do
     case ScheduleManager.mark_past(id, date) do
       :not_running ->
-        Logger.warn("Habit #{id} is not running", habit: id)
+        Logger.warn("Habit #{id} is not running")
         nil
 
       nil ->
-        Logger.info("Habit #{id} is not pending on #{date}", habit: id)
+        Logger.info("Habit #{id} is not pending on #{date}")
         nil
 
       history ->
-        Logger.info("Past habit #{id} marked on #{date}", habit: id)
+        Logger.info("Past habit #{id} marked on #{date}")
         save_habit_history(history)
+    end
+  end
+
+  @spec get_user(keyword) :: nil | User.t()
+  def get_user(id: id) do
+    case UserManager.state(id) do
+      :not_running -> nil
+      %{user: user} -> user
+    end
+  end
+
+  def get_user(email: email) do
+    UserManager.active_users()
+    |> Enum.map(&UserManager.state/1)
+    |> Enum.find(fn
+      %{user: %{email: ^email}} -> true
+      _ -> false
+    end)
+    |> case do
+      nil -> nil
+      %{user: user} -> user
+    end
+  end
+
+  @spec authenticate_user(binary, binary) ::
+          {:error, :bad_password | :not_found} | {:ok, User.t()}
+  def authenticate_user(email, password) do
+    with %User{} = user <- get_user(email: email),
+         true <- Utils.validate_password(password, user.password) do
+      {:ok, user}
+    else
+      false -> {:error, :bad_password}
+      nil -> {:error, :not_found}
+    end
+  end
+
+  @spec get_schedule(binary) :: {:error, :not_found} | {:ok, Schedule.t()}
+  def get_schedule(habit_id) do
+    case ScheduleManager.state(habit_id) do
+      :not_running -> {:error, :not_found}
+      schedule -> {:ok, schedule}
     end
   end
 
@@ -129,16 +191,4 @@ defmodule Catena do
   defp start_of_year(date_time), do: %{date_time | month: 1, day: 1}
 
   defp end_of_year(date_time), do: %{date_time | month: 12, day: 31}
-
-  # def test do
-  #   user = User.new("test@email.com")
-
-  #   event =
-  #     Catena.Core.Event.new(~N[2020-10-01 00:00:00],
-  #       repeats: %Catena.Core.Repeats.Daily{interval: 1}
-  #     )
-
-  #   habit = Habit.new("Test habit", user, event)
-  #   add_habit("7ef8cbb9-b6d9-4514-b455-44e731ae658f", habit)
-  # end
 end

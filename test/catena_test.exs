@@ -9,6 +9,7 @@ defmodule CatenaTest do
 
   setup _tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(CatenaPersistence.Repo)
+    UserManager.active_users() |> Enum.each(&UserManager.stop/1)
     {:ok, %{}}
   end
 
@@ -39,6 +40,53 @@ defmodule CatenaTest do
     refute is_nil(user.id)
     assert UserManager.running?(user.id)
     assert Utils.validate_password("password", user.password)
+  end
+
+  describe "get_user/1" do
+    test "returns an existing user given an id" do
+      user = Catena.new_user("test@email.com", "password")
+
+      assert user.id == Catena.get_user(id: user.id).id
+    end
+
+    test "returns an existing user given an email" do
+      user = Catena.new_user("test@email.com", "password")
+
+      assert user.id == Catena.get_user(email: "test@email.com").id
+    end
+
+    test "returns nil given a non-existent email" do
+      Catena.new_user("test@email.com", "password")
+
+      assert is_nil(Catena.get_user(email: "test1@email.com"))
+    end
+
+    test "returns nil given a non-existent id" do
+      Catena.new_user("test@email.com", "password")
+
+      assert is_nil(Catena.get_user(id: Utils.new_id()))
+    end
+  end
+
+  describe "authenticate_user/2" do
+    test "returns an ok tuple given a valid email and password" do
+      user = Catena.new_user("test@email.com", "password")
+
+      {:ok, returned_user} = Catena.authenticate_user(user.email, "password")
+      assert user.id == returned_user.id
+    end
+
+    test "returns an error tuple when given a valid email and an invalid password" do
+      Catena.new_user("test@email.com", "password")
+
+      assert {:error, :bad_password} == Catena.authenticate_user("test@email.com", "password1")
+    end
+
+    test "returns an error tuple when given an invalid email" do
+      Catena.new_user("test@email.com", "password")
+
+      assert {:error, :not_found} == Catena.authenticate_user("test1@email.com", "password")
+    end
   end
 
   test "new_habit/3 persists a new habit and starts a schedule process" do
