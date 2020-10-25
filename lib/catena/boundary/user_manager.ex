@@ -1,6 +1,6 @@
 defmodule Catena.Boundary.UserManager do
   alias Catena.Core.{Habit, User}
-  alias Catena.Boundary.Utils
+  alias Catena.Boundary.{ScheduleManager, Utils}
 
   use GenServer
 
@@ -34,17 +34,28 @@ defmodule Catena.Boundary.UserManager do
   end
 
   def stop(id) do
-    with true <- running?(id) do
+    with %{habits: habits} <- state(id) do
+      habits
+      |> Enum.map(& &1.id)
+      |> Enum.each(&ScheduleManager.stop/1)
+
       id |> via |> GenServer.stop()
-      # TODO Stop running schedules
     else
-      false -> :not_running
+      _ -> :not_running
     end
   end
 
   def state(id) do
     with true <- running?(id) do
       id |> via |> GenServer.call(:state)
+    else
+      false -> :not_running
+    end
+  end
+
+  def update(id, params) do
+    with true <- running?(id) do
+      id |> via |> GenServer.call({:update, params})
     else
       false -> :not_running
     end
@@ -84,5 +95,11 @@ defmodule Catena.Boundary.UserManager do
     Catena.start_schedule_process(habit)
 
     {:reply, :ok, %{state | habits: Map.put(habits, habit.id, habit)}}
+  end
+
+  def handle_call({:update, params}, _from, %{user: user} = state) do
+    user = struct(user, params)
+
+    {:reply, user, %{state | user: user}}
   end
 end
