@@ -54,15 +54,15 @@ defmodule CatenaPersistence.Habit do
   defp serialize_rrule(nil), do: nil
   defp serialize_rrule(event), do: to_string(event)
 
-  defp serialize_excludes([]), do: nil
-  defp serialize_excludes(excludes) do
+  def serialize_excludes([]), do: nil
+  def serialize_excludes(excludes) do
     excludes
     |> Enum.map(&NaiveDateTime.to_iso8601/1)
     |> Enum.join(",")
   end
 
-  defp deserialize_excludes(nil), do: []
-  defp deserialize_excludes(excludes) do
+  def deserialize_excludes(nil), do: []
+  def deserialize_excludes(excludes) do
     excludes
     |> String.split(",", trim: true)
     |> Enum.map(&NaiveDateTime.from_iso8601/1)

@@ -13,7 +13,7 @@ defmodule CatenaApi.AuthControllerTest do
     {:ok, conn: conn, user: user}
   end
 
-  describe "signup/2" do
+  describe "signup" do
     test "succeeds with valid params", %{conn: conn} do
       email = "user@email.com"
       conn = post conn, Routes.auth_path(conn, :signup), %{email: email, password: "password"}
@@ -34,7 +34,7 @@ defmodule CatenaApi.AuthControllerTest do
     end
   end
 
-  describe "signin/2" do
+  describe "signin" do
     test "succeeds with valid params", %{conn: conn, user: %{email: email}} do
       conn = post conn, Routes.auth_path(conn, :signin), %{email: email, password: "password"}
       json = json_response(conn, 200)
@@ -54,7 +54,7 @@ defmodule CatenaApi.AuthControllerTest do
     end
   end
 
-  describe "me/2" do
+  describe "getting the current user" do
     test "succeeds when given a valid token", %{conn: conn, user: user} do
       conn = authenticated_conn(conn, user)
       conn = get conn, Routes.auth_path(conn, :me)
@@ -70,7 +70,7 @@ defmodule CatenaApi.AuthControllerTest do
     end
   end
 
-  describe "change_password/2" do
+  describe "changing a user's password" do
     test "succeeds when given the correct current password", %{conn: conn, user: user} do
       conn = authenticated_conn(conn, user)
       attrs = %{password: "password", new_password: "new_password"}
@@ -90,7 +90,7 @@ defmodule CatenaApi.AuthControllerTest do
     end
   end
 
-  describe "forgot/2" do
+  describe "forgot password" do
     test "succeeds when given an existing email", %{conn: conn, user: %{email: email}} do
       conn = post conn, Routes.auth_path(conn, :forgot), %{email: email}
       json = json_response(conn, 200)
@@ -107,7 +107,7 @@ defmodule CatenaApi.AuthControllerTest do
     end
   end
 
-  describe "reset/2" do
+  describe "resetting a forgot password" do
     test "succeeds when given an existing reset token", %{conn: conn, user: %{email: email}} do
       token = Utils.random_string(20)
       password = "password1"

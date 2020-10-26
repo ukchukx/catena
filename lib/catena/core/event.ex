@@ -12,6 +12,7 @@ defmodule Catena.Core.Event do
 
   @spec new(NaiveDateTime.t(), keyword) :: t()
   @spec next_occurences(t(), nil | repeat()) :: [NaiveDateTime.t()]
+  @spec inflate_repetition(binary) :: repeat | nil
 
   def new(start_date, opts \\ []) do
     attrs = %{

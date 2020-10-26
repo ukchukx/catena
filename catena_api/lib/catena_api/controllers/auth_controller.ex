@@ -11,7 +11,7 @@ defmodule CatenaApi.AuthController do
          token <- CatenaApi.Token.get_token(%{email: email, id: user.id}) do
       Logger.info("Authentication attempt by '#{email}' succeeded")
 
-      json(conn, %{success: true, data: user_to_map(user), token: token})
+      json(conn, %{success: true, data: CatenaApi.Utils.user_to_map(user), token: token})
     else
       {:error, _} = err ->
         Logger.warn("Authentication attempt by '#{email}' failed due to #{inspect err}")
@@ -31,10 +31,10 @@ defmodule CatenaApi.AuthController do
 
       conn
       |> put_status(201)
-      |> json(%{success: true, data: user_to_map(user), token: token})
+      |> json(%{success: true, data: CatenaApi.Utils.user_to_map(user), token: token})
     else
       errors ->
-        errors = merge_errors(errors)
+        errors = CatenaApi.Utils.merge_errors(errors)
         Logger.warn("Sign up attempt by '#{email}' failed due to #{inspect errors}")
 
         conn
@@ -47,8 +47,8 @@ defmodule CatenaApi.AuthController do
     with %{}  <- Catena.get_user(email: email),
          token <- Utils.random_string(20),
          hashed_token <- Utils.hash_password(token),
-         %{} <- Catena.save_reset(email, hashed_token, expiry_ttl_in_seconds()) do
-      Task.async(fn -> send_email(email, token) end)
+         %{} <- Catena.save_reset(email, hashed_token, CatenaApi.Utils.expiry_ttl_in_seconds()) do
+      Task.async(fn -> CatenaApi.Utils.send_email(email, token) end)
       json(conn, %{success: true, message: "Password reset email sent"})
     else
       {:error, ch} ->
@@ -71,12 +71,12 @@ defmodule CatenaApi.AuthController do
     with %{"token" => token, "password" => pass} <- params,
          %{} = record <- Catena.get_reset(email),
          :ok <- Catena.delete_reset(email),
-         true <- valid_token?(token, record.token),
+         true <- CatenaApi.Utils.valid_token?(token, record.token),
          %{id: id} <- Catena.get_user(email: email),
          %{} = user <- Catena.update_user(id, %{password: pass}),
          token <- CatenaApi.Token.get_token(%{email: email, id: id}) do
       Logger.info("Password reset by '#{email}' was successful")
-      json(conn, %{success: true, data: user_to_map(user), token: token})
+      json(conn, %{success: true, data: CatenaApi.Utils.user_to_map(user), token: token})
     else
       false ->
         Logger.warn("Reset token for '#{email}' has expired")
@@ -102,7 +102,8 @@ defmodule CatenaApi.AuthController do
   end
 
   def me(%{assigns: %{user: %{id: id}}} = conn, _params) do
-    json(conn, %{success: true, data: [id: id] |> Catena.get_user() |> user_to_map()})
+    data = [id: id] |> Catena.get_user() |> CatenaApi.Utils.user_to_map()
+    json(conn, %{success: true, data: data})
   end
 
   def change_password(%{assigns: %{user: %{id: id, email: email}}} = conn, params) do
@@ -123,44 +124,5 @@ defmodule CatenaApi.AuthController do
     end
   end
 
-  defp user_to_map(user) do
-    user |> Map.from_struct() |> Map.drop(~w[__struct__ password]a)
-  end
 
-  defp merge_errors(errors) do
-    errors
-    |> Enum.group_by(
-      fn {field, _message} -> field end,
-      fn {_field, message} -> message end
-    )
-    |> Map.new
-  end
-
-  defp valid_token?(token, token_hash) do
-    Utils.validate_password(token, token_hash)
-  end
-
-  def expiry_ttl_in_seconds, do: Application.get_env(:catena_api, :password_reset_ttl) * 60
-
-  if Application.get_env(:catena, :env) == :test do
-    defp send_email(_email, _token), do: :ok
-  else
-    # TODO: Complete
-    defp send_email(email, token) do
-      _text = email_text(email, token)
-      _subject = "Password Reset"
-      _from = {"noreply@catena.com.ng", "Catena App"}
-      :ok
-    end
-  end
-
-  defp email_text(email, token) do
-    """
-    <h2>Hello, #{email}!</h2>
-    <p>You are receiving this email because we received a password reset request for your account.</p>
-    <p><a href='https://catena.com.ng/#/app/reset?email=#{email}&token=#{token}'>Reset Password</a></p>
-    <p>If you did not request a password reset, no further action is required.</p>
-    <p>Regards</p>
-    """
-  end
 end
