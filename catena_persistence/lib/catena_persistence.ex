@@ -99,8 +99,9 @@ defmodule CatenaPersistence do
           _  -> nil
         end
       _ ->
-        model
-        |> schema.changeset
+        schema
+        |> Repo.get(id)
+        |> schema.changeset(model)
         |> Repo.update
         |> case do
           {:ok, record} -> record

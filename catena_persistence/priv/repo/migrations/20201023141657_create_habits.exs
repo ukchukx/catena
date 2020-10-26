@@ -8,6 +8,7 @@ defmodule CatenaPersistence.Repo.Migrations.CreateHabits do
       add :title, :string
       add :excludes, :string
       add :rrule, :string
+      add :visibility, :string
       add :start_date, :naive_datetime
 
       timestamps(type: :utc_datetime)
