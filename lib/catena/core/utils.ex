@@ -112,4 +112,8 @@ defmodule Catena.Core.Utils do
   def hash_password(password) when is_binary(password), do: Bcrypt.hashpwsalt(password)
 
   def validate_password(password, hash), do: Bcrypt.checkpw(password, hash)
+
+  def random_string(length) do
+    length |> :crypto.strong_rand_bytes() |> Base.url_encode64() |> binary_part(0, length)
+  end
 end

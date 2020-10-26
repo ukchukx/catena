@@ -13,7 +13,8 @@ defmodule Catena.Application do
       {Registry, [name: Catena.Registry.ScheduleManager, keys: :unique]},
       {Registry, [name: Catena.Registry.UserManager, keys: :unique]},
       {DynamicSupervisor, [name: Catena.Supervisor.ScheduleManager, strategy: :one_for_one]},
-      {DynamicSupervisor, [name: Catena.Supervisor.UserManager, strategy: :one_for_one]}
+      {DynamicSupervisor, [name: Catena.Supervisor.UserManager, strategy: :one_for_one]},
+      {Catena.Boundary.PasswordReset, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

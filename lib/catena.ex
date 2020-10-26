@@ -1,5 +1,5 @@
 defmodule Catena do
-  alias Catena.Boundary.{ScheduleManager, UserManager, UserValidator}
+  alias Catena.Boundary.{PasswordReset, ScheduleManager, UserManager, UserValidator}
   alias Catena.Core.{Event, Habit, HabitHistory, Schedule, User, Utils}
 
   require Logger
@@ -11,6 +11,9 @@ defmodule Catena do
       email |> User.new(Keyword.new(map)) |> start_user_process
     end)
   end
+
+  @spec stop :: :ok
+  def stop, do: UserManager.active_users() |> Enum.each(&UserManager.stop/1)
 
   @spec start_user_process(User.t()) :: User.t()
   def start_user_process(user = %User{id: id}) when not is_nil(id) do
@@ -140,6 +143,21 @@ defmodule Catena do
       %{user: user} -> user
     end
   end
+
+  @spec save_reset(binary, binary, non_neg_integer()) :: map
+  def save_reset(email, token, ttl_seconds),
+    do: PasswordReset.put(email, token, ttl_seconds) |> Map.put(:email, email)
+
+  @spec get_reset(binary) :: nil | map
+  def get_reset(email) do
+    case PasswordReset.get(email) do
+      nil -> nil
+      record -> Map.put(record, :email, email)
+    end
+  end
+
+  @spec delete_reset(binary) :: :ok
+  def delete_reset(email), do: PasswordReset.delete(email)
 
   @spec authenticate_user(binary, binary) ::
           {:error, :bad_password | :not_found} | {:ok, User.t()}
