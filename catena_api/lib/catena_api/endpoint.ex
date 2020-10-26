@@ -48,5 +48,6 @@ defmodule CatenaApi.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug CORSPlug
+  plug CatenaApi.MetricsExporter
   plug CatenaApi.Router
 end
