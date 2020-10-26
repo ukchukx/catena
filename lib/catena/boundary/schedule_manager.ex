@@ -37,7 +37,7 @@ defmodule Catena.Boundary.ScheduleManager do
     end
   end
 
-  def mark_pending(id, date) do
+  def mark_pending(id, %NaiveDateTime{} = date) do
     with true <- running?(id) do
       id |> via |> GenServer.call({:mark_pending, date})
     else
@@ -45,9 +45,17 @@ defmodule Catena.Boundary.ScheduleManager do
     end
   end
 
-  def mark_past(id, date) do
+  def mark_past(id, %NaiveDateTime{} = date) do
     with true <- running?(id) do
       id |> via |> GenServer.call({:mark_past, date})
+    else
+      false -> :not_running
+    end
+  end
+
+  def update_habit(id, %{} = params) do
+    with true <- running?(id) do
+      id |> via |> GenServer.call({:update_habit, params})
     else
       false -> :not_running
     end
@@ -92,6 +100,10 @@ defmodule Catena.Boundary.ScheduleManager do
   def handle_call({:mark_pending, date}, _from, schedule) do
     {schedule, marked_history} = Schedule.mark_pending_event(schedule, date)
     {:reply, marked_history, schedule}
+  end
+
+  def handle_call({:update_habit, params}, _from, %{habit: habit} = schedule) do
+    {:reply, :ok, %{schedule | habit: struct(habit, params)}}
   end
 
   def handle_info(:tick, schedule) do

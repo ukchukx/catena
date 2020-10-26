@@ -14,6 +14,7 @@ defmodule CatenaPersistence do
   @spec user_habits(binary) :: [map]
   @spec habit_history_for_habit(binary) :: [map]
   @spec habit_history_for_user(binary) :: [map]
+  @spec delete_habit(struct) :: :ok
 
   def save_user(user, id_fn) do
     case save(User, User.from_model(user), id_fn) do
@@ -86,6 +87,18 @@ defmodule CatenaPersistence do
     |> from(where: [user_id: ^user_id])
     |> Repo.all
     |> Enum.map(&HabitHistory.to_map/1)
+  end
+
+  def delete_habit(%{id: id} = _habit) do
+    HabitHistory
+    |> from(where: [habit_id: ^id])
+    |> Repo.delete_all
+
+    Habit
+    |> from(where: [id: ^id])
+    |> Repo.delete_all
+
+    :ok
   end
 
   defp save(schema, model = %{id: id}, id_fn) do

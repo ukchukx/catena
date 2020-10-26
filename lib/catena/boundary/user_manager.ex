@@ -25,6 +25,14 @@ defmodule Catena.Boundary.UserManager do
     end
   end
 
+  def remove_habit(id, %Habit{} = habit) do
+    with true <- running?(id) do
+      id |> via |> GenServer.call({:remove_habit, habit})
+    else
+      false -> :not_running
+    end
+  end
+
   def running?(id) do
     active_users()
     |> Enum.any?(fn
@@ -95,6 +103,10 @@ defmodule Catena.Boundary.UserManager do
     Catena.start_schedule_process(habit)
 
     {:reply, :ok, %{state | habits: Map.put(habits, habit.id, habit)}}
+  end
+
+  def handle_call({:remove_habit, %{id: id} = _habit}, _from, %{habits: habits} = state) do
+    {:reply, :ok, %{state | habits: Map.delete(habits, id)}}
   end
 
   def handle_call({:update, params}, _from, %{user: user} = state) do

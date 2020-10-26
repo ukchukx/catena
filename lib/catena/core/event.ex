@@ -41,7 +41,7 @@ defmodule Catena.Core.Event do
 
   def inflate_repetition(str) do
     [Daily, Weekly, Monthly, Yearly]
-    |> Enum.map(& &1.inflate(str))
+    |> Enum.map(& &1.inflate(String.upcase(str)))
     |> Enum.find(fn
       {:error, _} -> false
       _ -> true

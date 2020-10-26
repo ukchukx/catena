@@ -3,8 +3,23 @@ defmodule CatenaApi.Utils do
     user |> Map.from_struct() |> Map.drop(~w[__struct__ password]a)
   end
 
-  def habit_to_map(habit) do
-    habit |> CatenaPersistence.Habit.from_model()
+  def habit_to_map(habit = %{event: %{start_date: start_date}}) do
+    habit
+    |> CatenaPersistence.Habit.from_model()
+    |> Map.put(:start_date, NaiveDateTime.to_iso8601(start_date))
+  end
+
+  def habit_history_to_map(history = %{date: date}) do
+    data = CatenaPersistence.HabitHistory.from_model(history)
+
+    data
+    |> Map.get(:id)
+    |> case do
+      nil -> Map.put(data, :done, false)
+      _ -> Map.put(data, :done, true)
+    end
+    |> Map.put(:date, NaiveDateTime.to_iso8601(date))
+    |> Map.delete(:id)
   end
 
   def merge_errors(errors) do

@@ -21,7 +21,7 @@ defmodule CatenaApi.Plug.Auth do
   defp unauthorized(conn) do
     conn
     |> put_resp_header("content-type", "application/json")
-    |> send_resp(401, Jason.encode!(%{error: "Unauthorized"}))
+    |> send_resp(401, Jason.encode!(%{message: "Unauthorized", success: false}))
     |> halt
   end
 end

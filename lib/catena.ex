@@ -144,6 +144,55 @@ defmodule Catena do
     end
   end
 
+  @spec get_habits(binary) :: [Habit.t()]
+  def get_habits(user_id) do
+    case UserManager.state(user_id) do
+      :not_running -> []
+      %{habits: habits} -> Map.values(habits)
+    end
+  end
+
+  @spec get_habit(binary) :: nil | Schedule.t()
+  def get_habit(id) do
+    case ScheduleManager.state(id) do
+      :not_running ->
+        nil
+
+      %Schedule{past_events: past} = schedule ->
+        %{schedule | past_events: Enum.reverse(past)}
+    end
+  end
+
+  @spec delete_habit(binary) :: :ok
+  def delete_habit(id) do
+    case get_habit(id) do
+      nil ->
+        :ok
+
+      %{habit: %Habit{user: %{id: user_id}} = habit} ->
+        ScheduleManager.stop(id)
+        UserManager.remove_habit(user_id, habit)
+        flush_habit(habit)
+    end
+  end
+
+  @spec update_habit(binary, map) :: Habit.t() | nil
+  def update_habit(id, params) do
+    case get_habit(id) do
+      nil ->
+        nil
+
+      %{habit: %Habit{} = habit} ->
+        habit =
+          habit
+          |> struct(params)
+          |> save_habit()
+
+        ScheduleManager.update_habit(id, params)
+        habit
+    end
+  end
+
   @spec save_reset(binary, binary, non_neg_integer()) :: map
   def save_reset(email, token, ttl_seconds),
     do: PasswordReset.put(email, token, ttl_seconds) |> Map.put(:email, email)
@@ -188,6 +237,9 @@ defmodule Catena do
   @spec save_habit_history(HabitHistory.t()) :: HabitHistory.t()
   def save_habit_history(history),
     do: persistence_module().save_habit_history(history, &Utils.new_id/0)
+
+  @spec flush_habit(Habit.t()) :: :ok
+  def flush_habit(habit), do: persistence_module().delete_habit(habit)
 
   @spec persistence_module :: atom
   def persistence_module, do: Application.get_env(:catena, :persistence_module)

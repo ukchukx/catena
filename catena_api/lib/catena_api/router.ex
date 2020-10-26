@@ -18,6 +18,7 @@ defmodule CatenaApi.Router do
     post "/signin", AuthController, :signin
     post "/forgot", AuthController, :forgot
     post "/reset", AuthController, :reset
+    get "/public-habit/:id", HabitController, :public_habit
   end
 
   scope "/api", CatenaApi do
@@ -26,12 +27,12 @@ defmodule CatenaApi.Router do
     get "/me", AuthController, :me
     post "/change_password", AuthController, :change_password
 
-    post "/tasks", TaskController, :create
-    get "/tasks", TaskController, :tasks
-    put "/tasks/:id", TaskController, :update
-    get "/tasks/:id", TaskController, :task
-    post "/tasks/:id/done", TaskController, :mark_pending
-    delete "/tasks/:id", TaskController, :delete
+    post "/habits", HabitController, :create
+    get "/habits", HabitController, :habits
+    put "/habits/:id", HabitController, :update
+    get "/habits/:id", HabitController, :habit
+    post "/habits/:id/mark-pending", HabitController, :mark_pending
+    delete "/habits/:id", HabitController, :delete
   end
 
   # Enables LiveDashboard only for development
