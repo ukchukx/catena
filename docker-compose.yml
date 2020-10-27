@@ -1,0 +1,50 @@
+version: '3'
+services:
+  catena_logger:
+    image: grafana/fluent-bit-plugin-loki
+    container_name: catena_logger
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    environment:
+      - LOKI_URL=https://logs.moview.com.ng/loki/api/v1/push
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+  catena:
+    build: .
+    image: catena
+    container_name: catena
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    depends_on:
+      - catena_logger
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: catena_logger
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.catena.rule=Host(`catena.com.ng`)"
+      - "traefik.http.routers.catena.entrypoints=websecure"
+      - "traefik.http.routers.catena.tls.certresolver=catena"
+  traefik:
+    image: traefik:v2.2
+    container_name: catena_proxy
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.catena.acme.httpchallenge=true"
+      - "--certificatesresolvers.catena.acme.email=ukchukundah@gmail.com"
+      - "--certificatesresolvers.catena.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.catena.acme.httpchallenge.entrypoint=web"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock

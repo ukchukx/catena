@@ -1,0 +1,10 @@
+**/_build/
+.elixir_ls
+.git
+**/deps/
+**/test/
+docker-compose.yml
+**/README.md
+.env.sh
+**/.formatter.exs
+**/.gitignore
