@@ -1,5 +1,5 @@
 defmodule Catena.Core.Schedule do
-  alias Catena.Core.{Habit, HabitHistory, Utils}
+  alias Catena.Core.{Habit, HabitHistory, User, Utils}
 
   @enforce_keys ~w[habit]a
   defstruct habit: nil, past_events: [], future_events: []
@@ -24,12 +24,14 @@ defmodule Catena.Core.Schedule do
   @spec mark_past_event(t(), NaiveDateTime.t()) :: mark_result
 
   def new(habit, habit_history, start_date, end_date, current_date) do
+    slim_habit = %Habit{id: habit.id, user: %User{id: habit.user.id}, title: habit.title}
+
     {past_events, future_events} =
       habit
       |> Habit.dates(start_date, end_date)
       |> Enum.map(fn date ->
         case Habit.history_for_date(habit_history, date) do
-          nil -> HabitHistory.new(habit, date, done: false)
+          nil -> HabitHistory.new(slim_habit, date, done: false)
           history -> history
         end
       end)

@@ -3,10 +3,12 @@ defmodule CatenaApi.Utils do
     user |> Map.from_struct() |> Map.drop(~w[__struct__ password]a)
   end
 
-  def habit_to_map(habit = %{event: %{start_date: start_date}}) do
+  def habit_to_map(habit) do
+    %{events: %{data: events}} = habit =
     habit
     |> CatenaPersistence.Habit.from_model()
-    |> Map.put(:start_date, NaiveDateTime.to_iso8601(start_date))
+
+    %{habit | events: events}
   end
 
   def habit_history_to_map(history = %{date: date}) do

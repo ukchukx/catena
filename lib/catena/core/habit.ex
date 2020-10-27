@@ -1,24 +1,24 @@
 defmodule Catena.Core.Habit do
   alias Catena.Core.{HabitHistory, Event, User, Utils}
 
-  defstruct ~w[user id title event visibility]a
+  defstruct ~w[user id title events visibility]a
 
   @type t :: %{
           id: binary,
           title: String.t(),
           visibility: String.t(),
           user: User.t(),
-          event: Event.t()
+          events: [Event.t()]
         }
 
-  @spec new(String.t(), User.t(), Event.t(), keyword) :: t()
+  @spec new(String.t(), User.t(), [Event.t()], keyword) :: t()
   @spec history_for_date([HabitHistory.t()], NaiveDateTime.t()) :: HabitHistory.t() | nil
 
-  def new(title, user, event, opts \\ []) do
+  def new(title, user, events, opts \\ []) do
     attrs = %{
       title: title,
       user: user,
-      event: event,
+      events: events,
       id: Keyword.get(opts, :id),
       visibility: Keyword.get(opts, :visibility, "private")
     }
@@ -35,7 +35,14 @@ defmodule Catena.Core.Habit do
     end)
   end
 
-  def dates(%__MODULE__{event: %Event{repeats: nil} = event}, start_date, end_date) do
+  def dates(%__MODULE__{events: events}, start_date, end_date) do
+    events
+    |> Enum.map(&generate_dates(&1, start_date, end_date))
+    |> List.flatten()
+    |> Enum.sort(&(Utils.earlier?(&1, &2) or &1 == &2))
+  end
+
+  defp generate_dates(%Event{repeats: nil} = event, start_date, end_date) do
     cond do
       Utils.earlier?(event.start_date, start_date) -> []
       Utils.earlier?(end_date, event.start_date) -> []
@@ -43,7 +50,7 @@ defmodule Catena.Core.Habit do
     end
   end
 
-  def dates(%__MODULE__{event: %Event{repeats: repeats} = event}, start_date, end_date) do
+  defp generate_dates(%Event{repeats: repeats} = event, start_date, end_date) do
     # if event date is later than start date, use event date
     # if event date is earlier than start date, use start date
     # use start date
@@ -61,7 +68,7 @@ defmodule Catena.Core.Habit do
       cond do
         is_nil(repeats.until) -> end_date
         Utils.earlier?(end_date, repeats.until) -> end_date
-        true -> repeats.end_date
+        true -> repeats.until
       end
 
     case Utils.earlier?(end_date, start_date) do

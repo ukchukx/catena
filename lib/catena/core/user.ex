@@ -1,5 +1,4 @@
 defmodule Catena.Core.User do
-  @enforce_keys ~w[email]a
   defstruct [:id, :username, :email, :password, archived: false]
 
   @type t :: %{

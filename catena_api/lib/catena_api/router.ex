@@ -45,6 +45,7 @@ defmodule CatenaApi.Router do
     post "/habits", HabitController, :create
     get "/habits", HabitController, :habits
     put "/habits/:id", HabitController, :update
+    put "/habits/:id/schedule", HabitController, :change_schedule
     get "/habits/:id", HabitController, :habit
     post "/habits/:id/mark-pending", HabitController, :mark_pending
     delete "/habits/:id", HabitController, :delete

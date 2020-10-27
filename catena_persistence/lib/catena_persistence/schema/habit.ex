@@ -4,15 +4,13 @@ defmodule CatenaPersistence.Habit do
 
   @behaviour CatenaPersistence.Model
   @primary_key {:id, :binary_id, autogenerate: false}
-  @fields ~w[user_id id title start_date rrule excludes visibility]a
+  @fields ~w[user_id id title events visibility]a
 
   schema "habits" do
     field :user_id, :binary_id
     field :title, :string
-    field :start_date, :naive_datetime
-    field :rrule, :string
     field :visibility, :string
-    field :excludes, :string
+    field :events, :map
 
     timestamps(type: :utc_datetime)
   end
@@ -31,9 +29,7 @@ defmodule CatenaPersistence.Habit do
       user_id: model.user.id,
       title: model.title,
       visibility: model.visibility,
-      start_date: model.event.start_date,
-      excludes: serialize_excludes(model.event.excludes),
-      rrule: serialize_rrule(model.event.repeats)
+      events: %{data: Enum.map(model.events, &from_event/1)}
     }
   end
 
@@ -43,16 +39,28 @@ defmodule CatenaPersistence.Habit do
       user: record.user_id,
       title: record.title,
       visibility: record.visibility,
-      event: %{
-        start_date: record.start_date,
-        repeats: record.rrule,
-        excludes: deserialize_excludes(record.excludes)
-      }
+      events: Enum.map(record.events["data"], &to_event/1)
     }
   end
 
-  defp serialize_rrule(nil), do: nil
-  defp serialize_rrule(event), do: to_string(event)
+  defp from_event(event) do
+    %{
+      start_date: NaiveDateTime.to_iso8601(event.start_date),
+      repeats: serialize_repeats(event.repeats),
+      excludes: serialize_excludes(event.excludes)
+    }
+  end
+
+  defp to_event(event_record) do
+    %{
+      start_date: NaiveDateTime.from_iso8601!(event_record["start_date"]),
+      repeats: event_record["repeats"],
+      excludes: deserialize_excludes(event_record["excludes"])
+    }
+  end
+
+  defp serialize_repeats(nil), do: nil
+  defp serialize_repeats(event), do: to_string(event)
 
   def serialize_excludes([]), do: nil
   def serialize_excludes(excludes) do

@@ -3,6 +3,8 @@ defmodule EventTest do
   use ScheduleBuilders
   use ScheduleAssertions
 
+  @moduletag :event
+
   describe "a daily events" do
     test "for everyday" do
       event = daily_event(~N[2020-01-01 00:00:00], 1)

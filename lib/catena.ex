@@ -22,7 +22,9 @@ defmodule Catena do
     with true <- UserManager.running?(id) do
       persistence_module().user_habits(id)
       |> Enum.map(&%{&1 | user: user})
-      |> Enum.map(&struct(Habit, %{&1 | event: inflate_event(&1.event)}))
+      |> Enum.map(fn habit = %{events: events} ->
+        struct(Habit, %{habit | events: Enum.map(events, &inflate_event/1)})
+      end)
       |> Enum.map(&start_schedule_process/1)
     end
 
@@ -31,13 +33,15 @@ defmodule Catena do
 
   @spec start_schedule_process(Habit.t()) :: Habit.t()
   def start_schedule_process(habit = %Habit{id: id, user: user}) when not is_nil(id) do
-    history =
-      persistence_module().habit_history_for_user(id)
-      |> Enum.map(&%{&1 | user: user, habit: habit})
-
+    slim_habit = %Habit{user: %User{id: user.id}, id: id, title: habit.title}
     current_date = NaiveDateTime.utc_now()
     start_date = current_date |> reset_time() |> start_of_year
     end_date = end_of_year(start_date)
+
+    history =
+      persistence_module().habit_history_for_habit(id)
+      |> Enum.map(&%{&1 | habit: slim_habit})
+      |> Enum.map(&Map.delete(&1, :user))
 
     ScheduleManager.run_schedule(Schedule.new(habit, history, start_date, end_date, current_date))
     habit
@@ -78,13 +82,13 @@ defmodule Catena do
     end
   end
 
-  @spec new_habit(binary, User.t(), Event.t(), keyword) :: Habit.t()
-  def new_habit(title, %User{} = user, %Event{} = event, opts \\ []) when is_binary(title) do
+  @spec new_habit(binary, User.t(), [Event.t()], keyword) :: Habit.t()
+  def new_habit(title, %User{} = user, events, opts \\ []) when is_binary(title) do
     start_schedule_process_fn =
       Keyword.get(opts, :start_schedule_process_fn, &start_schedule_process/1)
 
     title
-    |> Habit.new(user, event, opts)
+    |> Habit.new(user, events, opts)
     |> save_habit()
     |> start_schedule_process_fn.()
   end
@@ -185,11 +189,43 @@ defmodule Catena do
       %{habit: %Habit{} = habit} ->
         habit =
           habit
-          |> struct(params)
+          |> struct(Map.take(params, ~w[title visibility]a))
           |> save_habit()
 
         ScheduleManager.update_habit(id, params)
         habit
+    end
+  end
+
+  @spec add_event(binary, map, NaiveDateTime.t()) :: Habit.t() | nil
+  def add_event(id, event_params, until_for_previous_event) do
+    case get_habit(id) do
+      nil ->
+        nil
+
+      %{habit: %Habit{events: events} = habit} ->
+        last_event =
+          events
+          |> List.last()
+          |> Map.put(:until, until_for_previous_event)
+
+        event =
+          event_params
+          |> Map.take(~w[start_date repeats excludes]a)
+          |> inflate_event()
+
+        events =
+          events
+          |> List.replace_at(-1, last_event)
+          |> List.insert_at(-1, event)
+
+        habit =
+          habit
+          |> struct(%{events: events})
+          |> save_habit()
+
+        ScheduleManager.stop(id)
+        start_schedule_process(habit)
     end
   end
 

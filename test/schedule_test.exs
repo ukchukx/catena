@@ -3,9 +3,11 @@ defmodule ScheduleTest do
   use ScheduleBuilders
   use ScheduleAssertions
 
+  @moduletag :schedule
+
   def daily_habit(context) do
     event = daily_event(~N[2020-10-21 00:00:00], 1)
-    {:ok, Map.put(context, :habit, new_habit("Daily Habit", event, "test@user.com"))}
+    {:ok, Map.put(context, :habit, new_habit("Daily Habit", [event], "test@user.com"))}
   end
 
   describe "creating a schedule" do
@@ -87,11 +89,11 @@ defmodule ScheduleTest do
   describe "marking past schedules" do
     setup [:daily_habit]
 
-    test "succeeds if event is in the past and not done", %{habit: habit} do
+    test "succeeds if event is in the past and not done", %{habit: habit = %{events: [event]}} do
       start_date = ~N[2020-10-01 00:00:00]
       end_date = ~N[2020-10-23 00:00:00]
       current_date = ~N[2020-10-22 00:00:00]
-      past_date = habit.event.start_date
+      past_date = event.start_date
       schedule = new_schedule(habit, [], start_date, end_date, current_date)
 
       assert {_schedule, %HabitHistory{date: ^past_date, done: true}} =

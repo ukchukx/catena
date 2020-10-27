@@ -39,7 +39,7 @@ defmodule Catena.Core.Event do
   def next_occurences(%__MODULE__{repeats: %Yearly{}} = event, num),
     do: do_next_occurences(Yearly, event, num)
 
-  def inflate_repetition(str) do
+  def inflate_repetition(str) when is_binary(str) do
     [Daily, Weekly, Monthly, Yearly]
     |> Enum.map(& &1.inflate(String.upcase(str)))
     |> Enum.find(fn

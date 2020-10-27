@@ -17,7 +17,7 @@ defmodule CatenaTest do
 
   defp start_schedule_without_history(habit) do
     current_date = ~N[2020-10-22 00:00:00]
-    start_date = ~N[2020-10-01 00:00:00]
+    start_date = ~N[2020-10-20 00:00:00]
     end_date = ~N[2020-10-23 00:00:00]
 
     ScheduleManager.run_schedule(Schedule.new(habit, [], start_date, end_date, current_date))
@@ -26,7 +26,7 @@ defmodule CatenaTest do
 
   defp start_schedule_without_pending_history(habit) do
     current_date = ~N[2020-10-22 00:00:00]
-    start_date = ~N[2020-10-01 00:00:00]
+    start_date = ~N[2020-10-20 00:00:00]
     end_date = ~N[2020-10-23 00:00:00]
     history = [HabitHistory.new(habit, current_date, done: true)]
 
@@ -92,7 +92,7 @@ defmodule CatenaTest do
   test "new_habit/3 persists a new habit and starts a schedule process" do
     user = Catena.new_user("test@email.com", "password")
     event = daily_event()
-    habit = Catena.new_habit("Test habit", user, event)
+    habit = Catena.new_habit("Test habit", user, [event])
 
     refute is_nil(habit.id)
     assert ScheduleManager.running?(habit.id)
@@ -111,7 +111,7 @@ defmodule CatenaTest do
 
     %Habit{id: habit_id} =
       "Test habit"
-      |> Habit.new(user, daily_event())
+      |> Habit.new(user, [daily_event()])
       |> Catena.save_habit()
 
     Catena.start()
@@ -127,7 +127,8 @@ defmodule CatenaTest do
       user = Catena.new_user("test@email.com", "password")
       event = daily_event()
       opts = [start_schedule_process_fn: &start_schedule_without_history/1]
-      habit = Catena.new_habit("Test habit", user, event, opts)
+      habit = Catena.new_habit("Test habit", user, [event], opts)
+      ScheduleManager.state(habit.id)
 
       history = Catena.mark_pending_habit(habit.id, ~N[2020-10-22 00:00:00])
       refute is_nil(history.id)
@@ -137,7 +138,7 @@ defmodule CatenaTest do
       user = Catena.new_user("test@email.com", "password")
       event = daily_event()
       opts = [start_schedule_process_fn: &start_schedule_without_pending_history/1]
-      habit = Catena.new_habit("Test habit", user, event, opts)
+      habit = Catena.new_habit("Test habit", user, [event], opts)
 
       history = Catena.mark_pending_habit(habit.id, ~N[2020-10-22 00:00:00])
       assert is_nil(history)
@@ -149,7 +150,7 @@ defmodule CatenaTest do
       user = Catena.new_user("test@email.com", "password")
       event = daily_event()
       opts = [start_schedule_process_fn: &start_schedule_without_history/1]
-      habit = Catena.new_habit("Test habit", user, event, opts)
+      habit = Catena.new_habit("Test habit", user, [event], opts)
 
       history = Catena.mark_past_habit(habit.id, ~N[2020-10-21 00:00:00])
       refute is_nil(history.id)
@@ -157,12 +158,30 @@ defmodule CatenaTest do
 
     test "does nothing if not marked" do
       user = Catena.new_user("test@email.com", "password")
-      event = daily_event()
-      opts = [start_schedule_process_fn: &start_schedule_without_history/1]
-      habit = Catena.new_habit("Test habit", user, event, opts)
+      opts = [start_schedule_process_fn: &start_schedule_without_pending_history/1]
+      habit = Catena.new_habit("Test habit", user, [daily_event()], opts)
+      ScheduleManager.state(habit.id)
 
       history = Catena.mark_past_habit(habit.id, ~N[2020-10-22 00:00:00])
       assert is_nil(history)
     end
+  end
+
+  test "add_event/3 updates the last event, adds a new event then starts a schedule process" do
+    user = Catena.new_user("test@email.com", "password")
+    habit = Catena.new_habit("Test habit", user, [daily_event()])
+    last_event_end_date = ~N[2020-10-10 00:00:00]
+
+    event_params = %{
+      start_date: ~N[2020-10-11 00:00:00],
+      excludes: [],
+      repeats: "FREQ=DAILY;INTERVAL=2"
+    }
+
+    assert %{events: [first, second]} =
+             Catena.add_event(habit.id, event_params, last_event_end_date)
+
+    assert last_event_end_date == first.until
+    assert ScheduleManager.running?(habit.id)
   end
 end

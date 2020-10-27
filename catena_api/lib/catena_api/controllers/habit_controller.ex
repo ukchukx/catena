@@ -1,5 +1,4 @@
 defmodule CatenaApi.HabitController do
-  alias CatenaPersistence.Habit
   alias Catena.Core.Event
 
   use CatenaApi, :controller
@@ -62,18 +61,17 @@ defmodule CatenaApi.HabitController do
   def create(%{assigns: %{user: %{id: id, email: email}}} = conn, %{"title" => title} = params) do
     with %{"start_date" => start_date} <- params,
         viz <- Map.get(params, "visibility", "private"),
-        excludes <- params |> Map.get("excludes") |> Habit.deserialize_excludes(),
-        repetition <- params |> Map.get("rrule") |> Event.inflate_repetition(),
+        excludes <- params |> Map.get("excludes", []) |> Enum.map(&NaiveDateTime.from_iso8601/1),
+        repetition <- params |> Map.get("repeats") |> Event.inflate_repetition(),
         start_date <- NaiveDateTime.from_iso8601!(start_date),
         event <- Event.new(start_date, [repeats: repetition, excludes: excludes]),
         user <- Catena.get_user(id: id),
-        habit <- title |> to_string |> Catena.new_habit(user, event, [visibility: viz]) do
+        habit <- title |> to_string |> Catena.new_habit(user, [event], [visibility: viz]) do
       Logger.info("Habit '#{title}' for '#{email}' created")
-      habit = habit_to_map(habit)
 
       conn
       |> put_status(201)
-      |> json(%{success: true, data: %{history: [], habit: habit}})
+      |> json(%{success: true, data: %{history: [], habit: habit_to_map(habit)}})
     else
       err when is_list(err) ->
         err = CatenaApi.Utils.merge_errors(err)
@@ -106,6 +104,42 @@ defmodule CatenaApi.HabitController do
     else
       false ->
         Logger.warn("Cannot update habit '#{id}': '#{email}' is not owner")
+
+        conn
+        |> put_status(404)
+        |> json(%{success: false, message: "Not found"})
+
+      nil ->
+        Logger.warn("Could not find habit '#{id}'")
+
+        conn
+        |> put_status(404)
+        |> json(%{success: false, message: "Not found"})
+    end
+  end
+
+  def change_schedule(%{assigns: %{user: %{id: user_id, email: email}}} = conn, params) do
+    %{"id" => id} = params
+    default_date = NaiveDateTime.utc_now() |> NaiveDateTime.to_iso8601()
+    last_until_str = Map.get(params, "last_until", default_date)
+    last_until = NaiveDateTime.from_iso8601!(last_until_str)
+    start_date = Map.get(params, "start_date", last_until_str) |> NaiveDateTime.from_iso8601!()
+    excludes = params |> Map.get("excludes", []) |> Enum.map(&NaiveDateTime.from_iso8601/1)
+    repeats =  Map.get(params, "repeats")
+    event_params = %{repeats: repeats, excludes: excludes, start_date: start_date}
+
+    with %{habit: habit} <- Catena.get_habit(id),
+         true <- habit.user.id == user_id,
+         _habit <- Catena.add_event(id, event_params, last_until),
+         sched = %{habit: habit} <- Catena.get_habit(id),
+         past <- Enum.map(sched.past_events, &CatenaApi.Utils.habit_history_to_map/1),
+         future <- Enum.map(sched.future_events, &CatenaApi.Utils.habit_history_to_map/1) do
+      Logger.warn("Schedule for habit '#{id}' updated")
+
+      json(conn, %{success: true, data: %{habit: habit_to_map(habit), history: past ++ future}})
+    else
+      false ->
+        Logger.warn("Cannot update schedule for habit '#{id}': '#{email}' is not owner")
 
         conn
         |> put_status(404)

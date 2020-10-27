@@ -3,9 +3,11 @@ defmodule HabitTest do
   use ScheduleBuilders
   use ScheduleAssertions
 
+  @moduletag :habit
+
   def daily_habit(context) do
     event = daily_event(~N[2020-06-01 00:00:00], 1)
-    {:ok, Map.put(context, :habit, new_habit("Daily Habit", event, "test@user.com"))}
+    {:ok, Map.put(context, :habit, new_habit("Daily Habit", [event], "test@user.com"))}
   end
 
   describe "generating dates for a daily habit" do
@@ -19,7 +21,7 @@ defmodule HabitTest do
     end
 
     test "when start date is earlier than the habit start date", %{habit: habit} do
-      %{event: %{start_date: start_date}} = habit
+      %{events: [%{start_date: start_date}]} = habit
       end_date = ~N[2020-06-10 00:00:00]
       [first | _] = dates = Habit.dates(habit, ~N[2020-05-01 00:00:00], end_date)
       [last | _] = Enum.reverse(dates)
@@ -50,10 +52,81 @@ defmodule HabitTest do
     end
 
     test "when end date is earlier than the habit end date", %{habit: habit} do
-      %{event: %{repeats: r} = e} = habit
+      %{events: [%{repeats: r} = e]} = habit
       start_date = ~N[2020-06-01 00:00:00]
       end_date = ~N[2020-06-05 00:00:00]
-      habit = %{habit | event: %{e | repeats: %{r | until: ~N[2020-06-10 00:00:00]}}}
+      habit = %{habit | events: [%{e | repeats: %{r | until: ~N[2020-06-10 00:00:00]}}]}
+      [first | _] = dates = Habit.dates(habit, start_date, end_date)
+
+      assert 5 == length(dates)
+      assert first == start_date
+      assert [^end_date | _] = Enum.reverse(dates)
+    end
+  end
+
+  describe "generating dates for a daily habit with multiple events" do
+    setup [:daily_habit]
+
+    test "when start and end dates are earlier than the habit start date", %{habit: habit} do
+      %{events: [first_event = %{repeats: repeats}]} = habit
+      first_repeats = %{repeats | until: ~N[2020-06-10 00:00:00]}
+      second_event = daily_event(~N[2020-06-11 00:00:00], 2)
+      habit = %{habit | events: [%{first_event | repeats: first_repeats}, second_event]}
+      start_date = ~N[2020-05-01 00:00:00]
+      end_date = ~N[2020-05-10 00:00:00]
+
+      assert [] = Habit.dates(habit, start_date, end_date)
+    end
+
+    test "when start date is earlier than the habit start date", %{habit: habit} do
+      %{events: [first_event = %{start_date: start_date, repeats: repeats}]} = habit
+      second_event = daily_event(~N[2020-06-11 00:00:00], 2)
+      first_repeats = %{repeats | until: ~N[2020-06-10 00:00:00]}
+      habit = %{habit | events: [%{first_event | repeats: first_repeats}, second_event]}
+      end_date = ~N[2020-06-19 00:00:00]
+      [first | _] = dates = Habit.dates(habit, ~N[2020-05-01 00:00:00], end_date)
+      [last | _] = Enum.reverse(dates)
+
+      assert 15 == length(dates)
+      assert first == start_date
+      assert last == end_date
+    end
+
+    test "when start date is later than the habit start date", %{habit: habit} do
+      %{events: [first_event = %{repeats: repeats}]} = habit
+      first_repeats = %{repeats | until: ~N[2020-06-10 00:00:00]}
+      second_event = daily_event(~N[2020-06-11 00:00:00], 2)
+      habit = %{habit | events: [%{first_event | repeats: first_repeats}, second_event]}
+      start_date = ~N[2020-06-05 00:00:00]
+      end_date = ~N[2020-06-19 00:00:00]
+      [first | _] = dates = Habit.dates(habit, start_date, end_date)
+
+      assert 11 == length(dates)
+      assert first == start_date
+      assert [^end_date | _] = Enum.reverse(dates)
+    end
+
+    test "when start date is same as the habit start date", %{habit: habit} do
+      %{events: [first_event = %{repeats: repeats}]} = habit
+      first_repeats = %{repeats | until: ~N[2020-06-10 00:00:00]}
+      second_event = daily_event(~N[2020-06-11 00:00:00], 2)
+      habit = %{habit | events: [%{first_event | repeats: first_repeats}, second_event]}
+      start_date = ~N[2020-06-01 00:00:00]
+      end_date = ~N[2020-06-19 00:00:00]
+      [first | _] = dates = Habit.dates(habit, start_date, end_date)
+
+      assert 15 == length(dates)
+      assert first == start_date
+      assert [^end_date | _] = Enum.reverse(dates)
+    end
+
+    test "when end date is earlier than the habit end date", %{habit: habit} do
+      %{events: [first_event = %{repeats: repeats}]} = habit
+      first_repeats = %{repeats | until: ~N[2020-06-10 00:00:00]}
+      second_event = daily_event(~N[2020-06-11 00:00:00], 2)
+      habit = %{habit | events: [%{first_event | repeats: first_repeats}, second_event]}
+      start_date = ~N[2020-06-09 00:00:00]
+      end_date = ~N[2020-06-15 00:00:00]
       [first | _] = dates = Habit.dates(habit, start_date, end_date)
 
       assert 5 == length(dates)

@@ -25,6 +25,7 @@ defmodule CatenaPersistence.MixProject do
     [
       {:confex, "~> 3.4.0"},
       {:ecto_sql, "~> 3.5.1"},
+      {:jason, "~> 1.0"},
       {:myxql, "~> 0.4.3"}
     ]
   end
