@@ -30,6 +30,6 @@ ENV CATENA_HOST_PORT=${CATENA_HOST_PORT}
 ENV CATENA_PASSWORD_RESET_TTL=${CATENA_PASSWORD_RESET_TTL}
 
 WORKDIR /app
-COPY --from=builder /app/_build/prod/rel/catena .
+COPY --from=builder /app/_build/prod/rel/catena_api .
 
-CMD ["bin/catena", "start"]
+CMD ["bin/catena_api", "start"]
