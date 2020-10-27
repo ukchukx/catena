@@ -24,7 +24,7 @@ defmodule Catena.Application do
     case Supervisor.start_link(children, opts) do
       {:ok, _} = x ->
         if Application.get_env(:catena, :env) != :test do
-          Logger.info("Load active users")
+          Logger.info("Loading active users...")
           Catena.start()
         end
 

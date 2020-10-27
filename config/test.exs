@@ -8,7 +8,3 @@ config :catena_persistence, CatenaPersistence.Repo,
   database: {:system, "CATENA_DB_TEST_NAME"}
 
 config :logger, level: :warn
-
-config :catena_api, CatenaApi.Endpoint,
-  http: [port: 4002],
-  server: false

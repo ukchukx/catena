@@ -26,7 +26,6 @@ defmodule Catena.MixProject do
     [
       {:bcrypt_elixir, "~> 1.0"},
       {:comeonin, "~> 4.0"},
-      {:catena_api, path: "./catena_api", only: [:dev, :prod]},
       {:catena_persistence, path: "./catena_persistence"},
       {:elixir_uuid, "~> 1.2"}
     ]

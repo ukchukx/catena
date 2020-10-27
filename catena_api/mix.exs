@@ -34,7 +34,7 @@ defmodule CatenaApi.MixProject do
   defp deps do
     [
       {:atomize_keys, "~> 1.1"},
-      {:catena, path: "..", only: :test},
+      {:catena, path: ".."},
       {:cors_plug, "~> 1.4"},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
