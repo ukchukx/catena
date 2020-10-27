@@ -24,7 +24,12 @@ defmodule Catena.Core.Schedule do
   @spec mark_past_event(t(), NaiveDateTime.t()) :: mark_result
 
   def new(habit, habit_history, start_date, end_date, current_date) do
-    slim_habit = %Habit{id: habit.id, user: %User{id: habit.user.id}, title: habit.title}
+    slim_habit = %Habit{
+      id: habit.id,
+      user: %User{id: habit.user.id},
+      title: habit.title,
+      archived: habit.archived
+    }
 
     {past_events, future_events} =
       habit
@@ -59,9 +64,25 @@ defmodule Catena.Core.Schedule do
 
   def update_events(%__MODULE__{future_events: []} = mod, _date), do: mod
 
-  def update_events(%__MODULE__{future_events: events, past_events: past_events} = mod, date) do
+  def update_events(%__MODULE__{habit: %{archived: false}} = mod, date) do
+    %{future_events: events, past_events: past_events} = mod
     {past, future} = Enum.split_with(events, &(Utils.earlier?(&1.date, date) or &1.done))
     %{mod | past_events: transfer_head_items(past, past_events), future_events: future}
+  end
+
+  def update_events(%__MODULE__{habit: %{archived: true, events: events} = habit} = mod, date) do
+    %{future_events: future_events} = mod
+    {past, future} = Enum.split_with(future_events, &(Utils.earlier?(&1.date, date) or &1.done))
+
+    case past do
+      [] ->
+        %{mod | future_events: future}
+      past ->
+        %{excludes: excludes} = current_event = List.last(events)
+        excludes = excludes ++ Enum.map(past, & &1.date)
+        events = List.replace_at(events, -1, %{current_event | excludes: excludes})
+        %{mod | future_events: future, habit: %{habit | events: events}}
+    end
   end
 
   def mark_pending_event(%__MODULE__{future_events: []} = mod, _date), do: {mod, nil}

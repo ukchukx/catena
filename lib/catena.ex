@@ -33,7 +33,12 @@ defmodule Catena do
 
   @spec start_schedule_process(Habit.t()) :: Habit.t()
   def start_schedule_process(habit = %Habit{id: id, user: user}) when not is_nil(id) do
-    slim_habit = %Habit{user: %User{id: user.id}, id: id, title: habit.title}
+    slim_habit = %Habit{
+      user: %User{id: user.id},
+      id: id,
+      title: habit.title,
+      archived: habit.archived
+    }
     current_date = NaiveDateTime.utc_now()
     start_date = current_date |> reset_time() |> start_of_year
     end_date = end_of_year(start_date)
@@ -159,11 +164,8 @@ defmodule Catena do
   @spec get_habit(binary) :: nil | Schedule.t()
   def get_habit(id) do
     case ScheduleManager.state(id) do
-      :not_running ->
-        nil
-
-      %Schedule{past_events: past} = schedule ->
-        %{schedule | past_events: Enum.reverse(past)}
+      :not_running -> nil
+      %Schedule{past_events: past} = schedule -> %{schedule | past_events: Enum.reverse(past)}
     end
   end
 
@@ -189,7 +191,7 @@ defmodule Catena do
       %{habit: %Habit{} = habit} ->
         habit =
           habit
-          |> struct(Map.take(params, ~w[title visibility]a))
+          |> struct(Map.take(params, ~w[title visibility archived]a))
           |> save_habit()
 
         ScheduleManager.update_habit(id, params)

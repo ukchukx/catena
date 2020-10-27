@@ -91,11 +91,12 @@ defmodule CatenaApi.HabitController do
   end
 
   def update(%{assigns: %{user: %{id: user_id, email: email}}} = conn, %{"id" => id} = params) do
-    with sched = %{habit: habit = %{title: title, visibility: visibility}} <- Catena.get_habit(id),
+    with sched = %{habit: habit = %{title: t, visibility: v}} <- Catena.get_habit(id),
          true <- habit.user.id == user_id,
-         title <- Map.get(params, "title", title) |> to_string,
-         visibility <- Map.get(params, "visibility", visibility),
-         habit <- Catena.update_habit(id, %{title: title, visibility: visibility}),
+         t <- Map.get(params, "title", t) |> to_string,
+         v <- Map.get(params, "visibility", v),
+         a <- Map.get(params, "archived", habit.archived),
+         habit <- Catena.update_habit(id, %{title: t, visibility: v, archived: a}),
          past <- Enum.map(sched.past_events, &CatenaApi.Utils.habit_history_to_map/1),
          future <- Enum.map(sched.future_events, &CatenaApi.Utils.habit_history_to_map/1) do
       habit = habit_to_map(habit)

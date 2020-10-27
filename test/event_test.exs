@@ -107,4 +107,11 @@ defmodule EventTest do
     assert length(dates) == 1
     assert dates == [~N[2020-01-01 00:00:00]]
   end
+
+  test "excluded dates are removed" do
+    event = daily_event(~N[2020-01-01 00:00:00], 1)
+    num = 4
+    dates = Event.next_occurences(%{event | excludes: [~N[2020-01-02 00:00:00]]}, num)
+    assert length(dates) == num - 1
+  end
 end

@@ -48,5 +48,9 @@ defmodule Catena.Core.Event do
     end)
   end
 
-  defp do_next_occurences(mod, event, num), do: apply(mod, :next_occurences, [event, num])
+  defp do_next_occurences(mod, event = %{excludes: excludes}, num) do
+    mod
+    |> apply(:next_occurences, [event, num])
+    |> Enum.filter(& &1 not in excludes)
+  end
 end

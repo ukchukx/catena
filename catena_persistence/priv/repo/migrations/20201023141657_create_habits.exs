@@ -7,6 +7,7 @@ defmodule CatenaPersistence.Repo.Migrations.CreateHabits do
       add :user_id, :uuid
       add :title, :string
       add :visibility, :string
+      add :archived, :boolean
       add :events, :map # [{excludes, repeats, start_date}]
 
       timestamps(type: :utc_datetime)

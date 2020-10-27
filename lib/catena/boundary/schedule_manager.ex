@@ -109,7 +109,19 @@ defmodule Catena.Boundary.ScheduleManager do
   def handle_info(:tick, schedule) do
     schedule_next_tick()
 
-    {:noreply, Schedule.update_events(schedule, NaiveDateTime.utc_now())}
+    num_excludes = count_current_event_excludes(schedule)
+    %{habit: habit} = schedule = Schedule.update_events(schedule, NaiveDateTime.utc_now())
+
+    case count_current_event_excludes(schedule) do
+      ^num_excludes -> :ok
+      _increased_num_excludes -> Catena.persistence_module().save_habit(habit)
+    end
+
+    {:noreply, schedule}
+  end
+
+  defp count_current_event_excludes(%{habit: %{events: events}} = _schedule) do
+    events |> List.last() |> Map.get(:excludes) |> length
   end
 
   defp schedule_next_tick do

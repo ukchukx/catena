@@ -130,19 +130,28 @@ defmodule ScheduleTest do
       end_date = ~N[2020-10-23 00:00:00]
       current_date = ~N[2020-10-22 00:00:00]
       schedule = new_schedule(habit, [], start_date, end_date, current_date)
+      past_events = [~N[2020-10-21 00:00:00]]
+      future_events = [current_date, end_date]
 
-      assert [~N[2020-10-21 00:00:00]] ==
-               schedule.past_events |> Enum.map(& &1.date) |> Enum.reverse()
+      assert past_events == schedule.past_events |> Enum.map(& &1.date) |> Enum.reverse()
+      assert future_events == Enum.map(schedule.future_events, & &1.date)
 
-      assert [current_date, ~N[2020-10-23 00:00:00]] ==
-               Enum.map(schedule.future_events, & &1.date)
+      %{past_events: past, future_events: future} = Schedule.update_events(schedule, end_date)
 
-      schedule = Schedule.update_events(schedule, ~N[2020-10-23 00:00:00])
+      assert [~N[2020-10-21 00:00:00], current_date] == Enum.reverse(Enum.map(past, & &1.date))
+      assert [end_date] == Enum.map(future, & &1.date)
+    end
 
-      assert [~N[2020-10-21 00:00:00], ~N[2020-10-22 00:00:00]] ==
-               schedule.past_events |> Enum.map(& &1.date) |> Enum.reverse()
+    test "moves past future events into excludes if habit is archived", %{habit: habit} do
+      start_date = ~N[2020-10-01 00:00:00]
+      end_date = ~N[2020-10-23 00:00:00]
+      current_date = ~N[2020-10-22 00:00:00]
+      past_events = [~N[2020-10-21 00:00:00]]
+      schedule = new_schedule(%{habit | archived: true}, [], start_date, end_date, current_date)
+      %{habit: %{events: [event]}, past_events: past} = Schedule.update_events(schedule, end_date)
 
-      assert [~N[2020-10-23 00:00:00]] == Enum.map(schedule.future_events, & &1.date)
+      assert [current_date] == event.excludes
+      assert past_events == Enum.map(past, & &1.date)
     end
 
     test "does nothing if there are no future events", %{habit: habit} do

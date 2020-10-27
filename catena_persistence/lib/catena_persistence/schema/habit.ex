@@ -4,12 +4,13 @@ defmodule CatenaPersistence.Habit do
 
   @behaviour CatenaPersistence.Model
   @primary_key {:id, :binary_id, autogenerate: false}
-  @fields ~w[user_id id title events visibility]a
+  @fields ~w[user_id id title events visibility archived]a
 
   schema "habits" do
     field :user_id, :binary_id
     field :title, :string
     field :visibility, :string
+    field :archived, :boolean
     field :events, :map
 
     timestamps(type: :utc_datetime)
@@ -29,6 +30,7 @@ defmodule CatenaPersistence.Habit do
       user_id: model.user.id,
       title: model.title,
       visibility: model.visibility,
+      archived: model.archived,
       events: %{data: Enum.map(model.events, &from_event/1)}
     }
   end
@@ -39,6 +41,7 @@ defmodule CatenaPersistence.Habit do
       user: record.user_id,
       title: record.title,
       visibility: record.visibility,
+      archived: record.archived,
       events: Enum.map(record.events["data"], &to_event/1)
     }
   end
