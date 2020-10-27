@@ -5,7 +5,8 @@ defmodule CatenaApi.HabitController do
   require Logger
 
   def habits(%{assigns: %{user: %{id: id}}} = conn, _params) do
-    json(conn, %{success: true, data: id |> Catena.get_habits() |> Enum.map(&habit_to_map/1)})
+    habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.habit_to_map/1)
+    json(conn, %{success: true, data: habits})
   end
 
   defdelegate public_habit(conn, params), to: __MODULE__, as: :habit
@@ -13,7 +14,7 @@ defmodule CatenaApi.HabitController do
   def habit(%{assigns: %{user: %{id: user_id, email: email}}} = conn, %{"id" => id}) do
     with %{habit: habit, past_events: past, future_events: future} <- Catena.get_habit(id),
         true <- habit.user.id == user_id or habit.visibility == "public" do
-      habit = habit_to_map(habit)
+      habit = CatenaApi.Utils.habit_to_map(habit)
       past = Enum.map(past, &CatenaApi.Utils.habit_history_to_map/1)
       future = Enum.map(future, &CatenaApi.Utils.habit_history_to_map/1)
 
@@ -39,8 +40,9 @@ defmodule CatenaApi.HabitController do
     with %{habit: habit, past_events: past, future_events: future} <- Catena.get_habit(id),
         true <- habit.visibility == "public",
         past <- Enum.map(past, &CatenaApi.Utils.habit_history_to_map/1),
-        future <- Enum.map(future, &CatenaApi.Utils.habit_history_to_map/1) do
-      json(conn, %{success: true, data: %{habit: habit_to_map(habit), history: past ++ future}})
+        future <- Enum.map(future, &CatenaApi.Utils.habit_history_to_map/1),
+        habit <- CatenaApi.Utils.habit_to_map(habit) do
+      json(conn, %{success: true, data: %{habit: habit, history: past ++ future}})
     else
       false ->
         Logger.error("Cannot access habit '#{id}' habit is private")
@@ -71,7 +73,7 @@ defmodule CatenaApi.HabitController do
 
       conn
       |> put_status(201)
-      |> json(%{success: true, data: %{history: [], habit: habit_to_map(habit)}})
+      |> json(%{success: true, data: %{history: [], habit: CatenaApi.Utils.habit_to_map(habit)}})
     else
       err when is_list(err) ->
         err = CatenaApi.Utils.merge_errors(err)
@@ -98,9 +100,9 @@ defmodule CatenaApi.HabitController do
          a <- Map.get(params, "archived", habit.archived),
          habit <- Catena.update_habit(id, %{title: t, visibility: v, archived: a}),
          past <- Enum.map(sched.past_events, &CatenaApi.Utils.habit_history_to_map/1),
-         future <- Enum.map(sched.future_events, &CatenaApi.Utils.habit_history_to_map/1) do
-      habit = habit_to_map(habit)
-
+         future <- Enum.map(sched.future_events, &CatenaApi.Utils.habit_history_to_map/1),
+         habit <- CatenaApi.Utils.habit_to_map(habit) do
+      Logger.info("Habit '#{id}' updated")
       json(conn, %{success: true, data: %{habit: habit, history: past ++ future}})
     else
       false ->
@@ -134,10 +136,11 @@ defmodule CatenaApi.HabitController do
          _habit <- Catena.add_event(id, event_params, last_until),
          sched = %{habit: habit} <- Catena.get_habit(id),
          past <- Enum.map(sched.past_events, &CatenaApi.Utils.habit_history_to_map/1),
-         future <- Enum.map(sched.future_events, &CatenaApi.Utils.habit_history_to_map/1) do
-      Logger.warn("Schedule for habit '#{id}' updated")
+         future <- Enum.map(sched.future_events, &CatenaApi.Utils.habit_history_to_map/1),
+         habit <- CatenaApi.Utils.habit_to_map(habit) do
+      Logger.info("Schedule for habit '#{id}' updated")
 
-      json(conn, %{success: true, data: %{habit: habit_to_map(habit), history: past ++ future}})
+      json(conn, %{success: true, data: %{habit: habit, history: past ++ future}})
     else
       false ->
         Logger.warn("Cannot update schedule for habit '#{id}': '#{email}' is not owner")
@@ -216,12 +219,5 @@ defmodule CatenaApi.HabitController do
         |> put_status(404)
         |> json(%{success: false, message: "Not found"})
     end
-  end
-
-  defp habit_to_map(habit = %{user: user}) do
-    habit
-    |> CatenaApi.Utils.habit_to_map()
-    |> Map.put(:user, CatenaApi.Utils.user_to_map(user))
-    |> Map.delete(:user_id)
   end
 end

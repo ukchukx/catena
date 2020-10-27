@@ -3,10 +3,12 @@ defmodule CatenaApi.Utils do
     user |> Map.from_struct() |> Map.drop(~w[__struct__ password]a)
   end
 
-  def habit_to_map(habit) do
+  def habit_to_map(habit = %{user: user}) do
     %{events: %{data: events}} = habit =
     habit
     |> CatenaPersistence.Habit.from_model()
+    |> Map.put(:user, user_to_map(user))
+    |> Map.delete(:user_id)
 
     %{habit | events: events}
   end

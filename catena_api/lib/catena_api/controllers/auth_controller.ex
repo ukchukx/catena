@@ -7,11 +7,14 @@ defmodule CatenaApi.AuthController do
   def signin(conn, %{"email" => email, "password" => pass}) do
     Logger.info("'#{email}' attempting to sign in")
 
-    with {:ok, user} <- Catena.authenticate_user(email, pass),
+    with {:ok, user = %{id: id}} <- Catena.authenticate_user(email, pass),
          token <- CatenaApi.Token.get_token(%{email: email, id: user.id}) do
       Logger.info("Authentication attempt by '#{email}' succeeded")
 
-      json(conn, %{success: true, data: CatenaApi.Utils.user_to_map(user), token: token})
+      habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.habit_to_map/1)
+      user = user |> CatenaApi.Utils.user_to_map() |> Map.put(:habits, habits)
+
+      json(conn, %{success: true, data: user, token: token})
     else
       {:error, _} = err ->
         Logger.warn("Authentication attempt by '#{email}' failed due to #{inspect err}")
@@ -29,9 +32,11 @@ defmodule CatenaApi.AuthController do
          token <- CatenaApi.Token.get_token(%{email: email, id: user.id}) do
       Logger.info("Sign up attempt by '#{email}' succeeded")
 
+      user = user |> CatenaApi.Utils.user_to_map() |> Map.put(:habits, [])
+
       conn
       |> put_status(201)
-      |> json(%{success: true, data: CatenaApi.Utils.user_to_map(user), token: token})
+      |> json(%{success: true, data: user, token: token})
     else
       errors ->
         errors = CatenaApi.Utils.merge_errors(errors)
@@ -76,7 +81,11 @@ defmodule CatenaApi.AuthController do
          %{} = user <- Catena.update_user(id, %{password: pass}),
          token <- CatenaApi.Token.get_token(%{email: email, id: id}) do
       Logger.info("Password reset by '#{email}' was successful")
-      json(conn, %{success: true, data: CatenaApi.Utils.user_to_map(user), token: token})
+
+      habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.habit_to_map/1)
+      user = user |> CatenaApi.Utils.user_to_map() |> Map.put(:habits, habits)
+
+      json(conn, %{success: true, data: user, token: token})
     else
       false ->
         Logger.warn("Reset token for '#{email}' has expired")
@@ -102,8 +111,14 @@ defmodule CatenaApi.AuthController do
   end
 
   def me(%{assigns: %{user: %{id: id}}} = conn, _params) do
-    data = [id: id] |> Catena.get_user() |> CatenaApi.Utils.user_to_map()
-    json(conn, %{success: true, data: data})
+    habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.habit_to_map/1)
+    user =
+      [id: id]
+      |> Catena.get_user()
+      |> CatenaApi.Utils.user_to_map()
+      |> Map.put(:habits, habits)
+
+    json(conn, %{success: true, data: user})
   end
 
   def change_password(%{assigns: %{user: %{id: id, email: email}}} = conn, params) do
