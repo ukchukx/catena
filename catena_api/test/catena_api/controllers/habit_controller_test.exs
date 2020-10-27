@@ -50,15 +50,15 @@ defmodule CatenaApi.HabitControllerTest do
       json = json_response(conn, 201)
 
       assert json["success"]
-      assert get_in(json, ["data", "habit", "title"]) == attrs.title
-      assert get_in(json, ["data", "habit", "user", "id"]) == user_id
+      assert get_in(json, ["data", "title"]) == attrs.title
+      assert get_in(json, ["data", "user", "id"]) == user_id
     end
   end
 
   describe "fetching a user's habit" do
     test "returns the habit if owner requests", %{conn: conn, habit: %{id: habit_id}} do
       conn = get conn, Routes.habit_path(conn, :habit, habit_id)
-      %{"data" => %{"habit" => %{"id" => id}, "history" => history}} = json_response(conn, 200)
+      %{"data" => %{"id" => id, "history" => history}} = json_response(conn, 200)
 
       assert id == habit_id
       assert Enum.all?(history, & ! &1["done"])
@@ -74,7 +74,7 @@ defmodule CatenaApi.HabitControllerTest do
       opts = [visibility: "public", start_schedule_process_fn: &start_schedule/1]
       habit = Catena.new_habit("Duo", u, [daily_event()], opts)
       conn = get conn, Routes.habit_path(conn, :public_habit, habit.id)
-      %{"data" => %{"habit" => %{"id" => id}, "history" => history}} = json_response(conn, 200)
+      %{"data" => %{"id" => id, "history" => history}} = json_response(conn, 200)
 
       assert id == habit.id
       assert 4 == length(history)
@@ -124,8 +124,8 @@ defmodule CatenaApi.HabitControllerTest do
       attrs = %{visibility: "public", title: "Premiere habite"}
       conn = put conn, Routes.habit_path(conn, :update, id), attrs
       json = json_response(conn, 200)
-      assert get_in(json, ["data", "habit", "visibility"]) == attrs.visibility
-      assert get_in(json, ["data", "habit", "title"]) == attrs.title
+      assert get_in(json, ["data", "visibility"]) == attrs.visibility
+      assert get_in(json, ["data", "title"]) == attrs.title
     end
 
     test "fails if not requested as the owner", %{conn: conn, habit: habit} do
@@ -147,7 +147,7 @@ defmodule CatenaApi.HabitControllerTest do
       }
       conn = put conn, Routes.habit_path(conn, :change_schedule, id), attrs
       json = json_response(conn, 200)
-      assert get_in(json, ["data", "habit", "events"]) |> length == 2
+      assert json |> get_in(["data", "events"]) |> length == 2
     end
   end
 

@@ -1,16 +1,16 @@
 defmodule CatenaApi.Utils do
-  def user_to_map(user) do
-    user |> Map.from_struct() |> Map.drop(~w[__struct__ password]a)
-  end
+  def user_to_map(user), do: user |> Map.from_struct() |> Map.drop(~w[__struct__ password]a)
 
-  def habit_to_map(habit = %{user: user}) do
-    %{events: %{data: events}} = habit =
+  def schedule_to_map(%{habit: habit, past_events: past, future_events: future}, user) do
+    past = Enum.map(past, &habit_history_to_map/1)
+    future = Enum.map(future, &habit_history_to_map/1)
+    habit = %{events: %{data: events}} = CatenaPersistence.Habit.from_model(habit)
+
     habit
-    |> CatenaPersistence.Habit.from_model()
     |> Map.put(:user, user_to_map(user))
-    |> Map.delete(:user_id)
-
-    %{habit | events: events}
+    |> Map.drop([:user_id])
+    |> Map.put(:history, past ++ future)
+    |> Map.put(:events, events)
   end
 
   def habit_history_to_map(history = %{date: date}) do

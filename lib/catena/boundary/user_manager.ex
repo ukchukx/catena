@@ -92,21 +92,21 @@ defmodule Catena.Boundary.UserManager do
   end
 
   def init(%User{} = user) do
-    {:ok, %{user: user, habits: %{}}}
+    {:ok, %{user: user, habits: []}}
   end
 
   def init(_), do: {:error, "Only users accepted"}
 
   def handle_call(:state, _from, state), do: {:reply, state, state}
 
-  def handle_call({:add_habit, habit}, _from, %{habits: habits} = state) do
+  def handle_call({:add_habit, %{id: id} = habit}, _from, %{habits: habits} = state) do
     Catena.start_schedule_process(habit)
 
-    {:reply, :ok, %{state | habits: Map.put(habits, habit.id, habit)}}
+    {:reply, :ok, %{state | habits: [id | habits]}}
   end
 
   def handle_call({:remove_habit, %{id: id} = _habit}, _from, %{habits: habits} = state) do
-    {:reply, :ok, %{state | habits: Map.delete(habits, id)}}
+    {:reply, :ok, %{state | habits: Enum.filter(habits, & &1 != id)}}
   end
 
   def handle_call({:update, params}, _from, %{user: user} = state) do

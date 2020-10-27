@@ -11,8 +11,15 @@ defmodule CatenaApi.AuthController do
          token <- CatenaApi.Token.get_token(%{email: email, id: user.id}) do
       Logger.info("Authentication attempt by '#{email}' succeeded")
 
-      habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.habit_to_map/1)
-      user = user |> CatenaApi.Utils.user_to_map() |> Map.put(:habits, habits)
+      habits =
+        id
+        |> Catena.get_habits()
+        |> Enum.map(&CatenaApi.Utils.schedule_to_map(&1, user))
+
+      user =
+        user
+        |> CatenaApi.Utils.user_to_map()
+        |> Map.put(:habits, habits)
 
       json(conn, %{success: true, data: user, token: token})
     else
@@ -82,8 +89,15 @@ defmodule CatenaApi.AuthController do
          token <- CatenaApi.Token.get_token(%{email: email, id: id}) do
       Logger.info("Password reset by '#{email}' was successful")
 
-      habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.habit_to_map/1)
-      user = user |> CatenaApi.Utils.user_to_map() |> Map.put(:habits, habits)
+      habits =
+        id
+        |> Catena.get_habits()
+        |> Enum.map(&CatenaApi.Utils.schedule_to_map(&1, user))
+
+      user =
+        user
+        |> CatenaApi.Utils.user_to_map()
+        |> Map.put(:habits, habits)
 
       json(conn, %{success: true, data: user, token: token})
     else
@@ -111,10 +125,14 @@ defmodule CatenaApi.AuthController do
   end
 
   def me(%{assigns: %{user: %{id: id}}} = conn, _params) do
-    habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.habit_to_map/1)
+    user = Catena.get_user(id: id)
+    habits =
+      id
+      |> Catena.get_habits()
+      |> Enum.map(&CatenaApi.Utils.schedule_to_map(&1, user))
+
     user =
-      [id: id]
-      |> Catena.get_user()
+      user
       |> CatenaApi.Utils.user_to_map()
       |> Map.put(:habits, habits)
 

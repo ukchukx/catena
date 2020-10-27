@@ -5,20 +5,18 @@ defmodule CatenaApi.HabitController do
   require Logger
 
   def habits(%{assigns: %{user: %{id: id}}} = conn, _params) do
-    habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.habit_to_map/1)
+    user = Catena.get_user(id: id)
+    habits = id |> Catena.get_habits() |> Enum.map(&CatenaApi.Utils.schedule_to_map(&1, user))
     json(conn, %{success: true, data: habits})
   end
 
   defdelegate public_habit(conn, params), to: __MODULE__, as: :habit
 
   def habit(%{assigns: %{user: %{id: user_id, email: email}}} = conn, %{"id" => id}) do
-    with %{habit: habit, past_events: past, future_events: future} <- Catena.get_habit(id),
-        true <- habit.user.id == user_id or habit.visibility == "public" do
-      habit = CatenaApi.Utils.habit_to_map(habit)
-      past = Enum.map(past, &CatenaApi.Utils.habit_history_to_map/1)
-      future = Enum.map(future, &CatenaApi.Utils.habit_history_to_map/1)
-
-      json(conn, %{success: true, data: %{habit: habit, history: past ++ future}})
+    with %{habit: habit} = schedule <- Catena.get_habit(id),
+        true <- habit.user.id == user_id or habit.visibility == "public",
+        user <- Catena.get_user(id: habit.user.id) do
+      json(conn, %{success: true, data: CatenaApi.Utils.schedule_to_map(schedule, user)})
     else
       false ->
         Logger.warn("'#{email}' cannot access habit '#{id}': not owner and habit is private")
@@ -37,12 +35,11 @@ defmodule CatenaApi.HabitController do
   end
 
   def habit(conn, %{"id" => id}) do
-    with %{habit: habit, past_events: past, future_events: future} <- Catena.get_habit(id),
+    with %{habit: habit = %{user: %{id: user_id}}} = schedule <- Catena.get_habit(id),
         true <- habit.visibility == "public",
-        past <- Enum.map(past, &CatenaApi.Utils.habit_history_to_map/1),
-        future <- Enum.map(future, &CatenaApi.Utils.habit_history_to_map/1),
-        habit <- CatenaApi.Utils.habit_to_map(habit) do
-      json(conn, %{success: true, data: %{habit: habit, history: past ++ future}})
+        user <- Catena.get_user(id: user_id),
+        schedule <- CatenaApi.Utils.schedule_to_map(schedule, user) do
+      json(conn, %{success: true, data: schedule})
     else
       false ->
         Logger.error("Cannot access habit '#{id}' habit is private")
@@ -61,6 +58,8 @@ defmodule CatenaApi.HabitController do
   end
 
   def create(%{assigns: %{user: %{id: id, email: email}}} = conn, %{"title" => title} = params) do
+    title = to_string(title)
+
     with %{"start_date" => start_date} <- params,
         viz <- Map.get(params, "visibility", "private"),
         excludes <- params |> Map.get("excludes", []) |> Enum.map(&NaiveDateTime.from_iso8601/1),
@@ -68,12 +67,13 @@ defmodule CatenaApi.HabitController do
         start_date <- NaiveDateTime.from_iso8601!(start_date),
         event <- Event.new(start_date, [repeats: repetition, excludes: excludes]),
         user <- Catena.get_user(id: id),
-        habit <- title |> to_string |> Catena.new_habit(user, [event], [visibility: viz]) do
+        %{id: handle_id} <- Catena.new_habit(title, user, [event], [visibility: viz]),
+        schedule <- Catena.get_habit(handle_id) do
       Logger.info("Habit '#{title}' for '#{email}' created")
 
       conn
       |> put_status(201)
-      |> json(%{success: true, data: %{history: [], habit: CatenaApi.Utils.habit_to_map(habit)}})
+      |> json(%{success: true, data: CatenaApi.Utils.schedule_to_map(schedule, user)})
     else
       err when is_list(err) ->
         err = CatenaApi.Utils.merge_errors(err)
@@ -93,17 +93,16 @@ defmodule CatenaApi.HabitController do
   end
 
   def update(%{assigns: %{user: %{id: user_id, email: email}}} = conn, %{"id" => id} = params) do
-    with sched = %{habit: habit = %{title: t, visibility: v}} <- Catena.get_habit(id),
+    with %{habit: habit = %{title: t, visibility: v}} <- Catena.get_habit(id),
          true <- habit.user.id == user_id,
          t <- Map.get(params, "title", t) |> to_string,
          v <- Map.get(params, "visibility", v),
          a <- Map.get(params, "archived", habit.archived),
-         habit <- Catena.update_habit(id, %{title: t, visibility: v, archived: a}),
-         past <- Enum.map(sched.past_events, &CatenaApi.Utils.habit_history_to_map/1),
-         future <- Enum.map(sched.future_events, &CatenaApi.Utils.habit_history_to_map/1),
-         habit <- CatenaApi.Utils.habit_to_map(habit) do
+         _habit <- Catena.update_habit(id, %{title: t, visibility: v, archived: a}),
+         user <- Catena.get_user(id: user_id),
+         schedule <- id |> Catena.get_habit() |> CatenaApi.Utils.schedule_to_map(user) do
       Logger.info("Habit '#{id}' updated")
-      json(conn, %{success: true, data: %{habit: habit, history: past ++ future}})
+      json(conn, %{success: true, data: schedule})
     else
       false ->
         Logger.warn("Cannot update habit '#{id}': '#{email}' is not owner")
@@ -134,13 +133,12 @@ defmodule CatenaApi.HabitController do
     with %{habit: habit} <- Catena.get_habit(id),
          true <- habit.user.id == user_id,
          _habit <- Catena.add_event(id, event_params, last_until),
-         sched = %{habit: habit} <- Catena.get_habit(id),
-         past <- Enum.map(sched.past_events, &CatenaApi.Utils.habit_history_to_map/1),
-         future <- Enum.map(sched.future_events, &CatenaApi.Utils.habit_history_to_map/1),
-         habit <- CatenaApi.Utils.habit_to_map(habit) do
+         schedule <- Catena.get_habit(id),
+         user <- Catena.get_user(id: user_id),
+         schedule <- CatenaApi.Utils.schedule_to_map(schedule, user) do
       Logger.info("Schedule for habit '#{id}' updated")
 
-      json(conn, %{success: true, data: %{habit: habit, history: past ++ future}})
+      json(conn, %{success: true, data: schedule})
     else
       false ->
         Logger.warn("Cannot update schedule for habit '#{id}': '#{email}' is not owner")

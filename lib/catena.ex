@@ -153,11 +153,11 @@ defmodule Catena do
     end
   end
 
-  @spec get_habits(binary) :: [Habit.t()]
+  @spec get_habits(binary) :: [Schedule.t()]
   def get_habits(user_id) do
     case UserManager.state(user_id) do
       :not_running -> []
-      %{habits: habits} -> Map.values(habits)
+      %{habits: habits} -> Enum.map(habits, &get_habit/1)
     end
   end
 
