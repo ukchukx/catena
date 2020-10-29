@@ -49,6 +49,7 @@ defmodule Catena do
       |> Enum.map(&Map.delete(&1, :user))
 
     ScheduleManager.run_schedule(Schedule.new(habit, history, start_date, end_date, current_date))
+    UserManager.add_habit(user.id, habit)
     habit
   end
 
