@@ -26,7 +26,7 @@ defmodule Catena.Core.Repeats.Validators do
   end
 
   def validate_count_or_until(%{until: u}) when not is_nil(u) do
-    case is_struct(u) and u.__struct__ == "NaiveDateTime" do
+    case is_struct(u) and u.__struct__ == NaiveDateTime do
       true -> :ok
       false -> {:error, "until is not a NaiveDateTime"}
     end
