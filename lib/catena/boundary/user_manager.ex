@@ -99,9 +99,7 @@ defmodule Catena.Boundary.UserManager do
 
   def handle_call(:state, _from, state), do: {:reply, state, state}
 
-  def handle_call({:add_habit, %{id: id} = habit}, _from, %{habits: habits} = state) do
-    Catena.start_schedule_process(habit)
-
+  def handle_call({:add_habit, %{id: id} = _habit}, _from, %{habits: habits} = state) do
     {:reply, :ok, %{state | habits: [id | habits]}}
   end
 

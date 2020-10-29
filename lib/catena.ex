@@ -31,7 +31,7 @@ defmodule Catena do
     user
   end
 
-  @spec start_schedule_process(Habit.t()) :: Habit.t()
+  @spec start_schedule_process(Habit.t()) :: Schedule.t()
   def start_schedule_process(habit = %Habit{id: id, user: user}) when not is_nil(id) do
     slim_habit = %Habit{
       user: %User{id: user.id},
@@ -48,9 +48,10 @@ defmodule Catena do
       |> Enum.map(&%{&1 | habit: slim_habit})
       |> Enum.map(&Map.delete(&1, :user))
 
-    ScheduleManager.run_schedule(Schedule.new(habit, history, start_date, end_date, current_date))
     UserManager.add_habit(user.id, habit)
-    habit
+    schedule = Schedule.new(habit, history, start_date, end_date, current_date)
+    ScheduleManager.run_schedule(schedule)
+    schedule
   end
 
   @spec new_user(binary, binary) :: keyword | User.t()
@@ -92,11 +93,13 @@ defmodule Catena do
   def new_habit(title, %User{} = user, events, opts \\ []) when is_binary(title) do
     start_schedule_process_fn =
       Keyword.get(opts, :start_schedule_process_fn, &start_schedule_process/1)
+    habit =
+      title
+      |> Habit.new(user, events, opts)
+      |> save_habit()
 
-    title
-    |> Habit.new(user, events, opts)
-    |> save_habit()
-    |> start_schedule_process_fn.()
+    start_schedule_process_fn.(habit)
+    habit
   end
 
   @spec mark_pending_habit(binary, NaiveDateTime.t()) :: nil | HabitHistory.t()
@@ -229,6 +232,7 @@ defmodule Catena do
 
         ScheduleManager.stop(id)
         start_schedule_process(habit)
+        habit
     end
   end
 
