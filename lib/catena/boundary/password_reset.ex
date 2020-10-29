@@ -19,12 +19,29 @@ defmodule Catena.Boundary.PasswordReset do
   def init(state), do: {:ok, state}
 
   def handle_call({:put, email, token, ttl_seconds}, _from, state) do
-    record = %{token: token, created_at: NaiveDateTime.utc_now()}
-    schedule_purge(email, ttl_seconds)
+    case Map.get(state, email) do
+      nil -> :ok
+      %{ref: old_ref} -> :erlang.cancel_timer(old_ref)
+    end
+
+    record = %{
+      token: token,
+      created_at: NaiveDateTime.utc_now(),
+      ref: schedule_purge(email, ttl_seconds)
+    }
+
     {:reply, record, Map.put(state, email, record)}
   end
 
-  def handle_call({:get, email}, _from, state), do: {:reply, Map.get(state, email), state}
+  def handle_call({:get, email}, _from, state) do
+    record =
+      case Map.get(state, email) do
+        nil -> nil
+        record -> Map.delete(record, :ref)
+      end
+
+    {:reply, record, state}
+  end
 
   def handle_call({:delete, email}, _from, state), do: {:reply, :ok, Map.delete(state, email)}
 
