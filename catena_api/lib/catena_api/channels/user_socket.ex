@@ -1,8 +1,10 @@
 defmodule CatenaApi.UserSocket do
   use Phoenix.Socket
 
+  require Logger
+
   ## Channels
-  # channel "room:*", CatenaApi.RoomChannel
+  channel "user:*", CatenaApi.UserChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
@@ -16,9 +18,19 @@ defmodule CatenaApi.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   @impl true
-  def connect(_params, socket, _connect_info) do
-    {:ok, socket}
+  def connect(%{"token" => token}, socket, connect_info) do
+    with {:ok, %{"id" => user_id}} <- CatenaApi.Token.verify_and_validate(token, CatenaApi.Token.signer()) do
+      {:ok, assign(socket, :user_id, user_id)}
+    else
+      err ->
+        Logger.warn(
+          "Refuse socket connection: err = #{inspect err}, info = #{inspect connect_info}"
+        )
+        :error
+    end
   end
+
+  def connect(_params, _socket, _connect_info), do: :error
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
   #
@@ -31,5 +43,6 @@ defmodule CatenaApi.UserSocket do
   #
   # Returning `nil` makes this socket anonymous.
   @impl true
+  def id(_socket = %{assigns: %{user_id: id}}), do: "user_socket:#{id}"
   def id(_socket), do: nil
 end
