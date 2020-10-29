@@ -79,6 +79,25 @@ defmodule Catena.Core.Habit do
     end
   end
 
+  defp unroll(event = %{repeats: %{count: x, until: end_date}}) when is_integer(x) do
+    event
+    |> Stream.unfold(fn
+      nil ->
+        nil
+
+      event ->
+        case Event.next_occurences(event, x) do
+          [] -> nil
+          [date] -> {[date], nil}
+          dates -> {dates, nil}
+        end
+    end)
+    |> Enum.to_list()
+    |> List.flatten()
+    |> Enum.filter(fn date -> Utils.earlier?(date, end_date) or date == end_date end)
+    |> Enum.uniq()
+  end
+
   defp unroll(event) do
     event
     |> Stream.unfold(fn

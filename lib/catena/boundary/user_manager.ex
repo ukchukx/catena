@@ -43,9 +43,7 @@ defmodule Catena.Boundary.UserManager do
 
   def stop(id) do
     with %{habits: habits} <- state(id) do
-      habits
-      |> Enum.map(& &1.id)
-      |> Enum.each(&ScheduleManager.stop/1)
+      Enum.each(habits, &ScheduleManager.stop/1)
 
       id |> via |> GenServer.stop()
     else

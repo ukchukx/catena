@@ -83,10 +83,9 @@ defmodule Catena.Core.Repeats.Weekly do
 
       {n, event = %{start_date: prev_date}} ->
         next_dates = next(rule, prev_date)
-        new_acc = n |> Kernel.-(length(next_dates)) |> max(0)
 
         with true <- is_nil(end_date) do
-          {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
+          {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
         else
           false ->
             next_dates =
@@ -94,7 +93,7 @@ defmodule Catena.Core.Repeats.Weekly do
 
             case next_dates do
               [] -> nil
-              _ -> {next_dates, {new_acc, %{event | start_date: List.last(next_dates)}}}
+              _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
             end
         end
     end)

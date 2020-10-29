@@ -162,8 +162,8 @@ defmodule CatenaApi.HabitController do
       Catena.delete_habit(id)
 
       conn
-      |> put_status(204)
-      |> json(%{success: true})
+      |> put_resp_header("content-type", "application/json")
+      |> send_resp(204, "")
     else
       false ->
         Logger.warn("Cannot delete habit '#{id}': '#{email}' is not owner")
