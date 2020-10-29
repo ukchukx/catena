@@ -36,7 +36,8 @@ config :catena,
 
 config :catena_api,
   ecto_repos: [CatenaPersistence.Repo],
-  password_reset_ttl: {:system, :integer, "CATENA_PASSWORD_RESET_TTL", 60}
+  password_reset_ttl: {:system, :integer, "CATENA_PASSWORD_RESET_TTL_MINUTES", 120},
+  token_ttl: {:system, :integer, "CATENA_TOKEN_TTL_MINUTES", 120}
 
 config :catena_persistence, CatenaPersistence.Repo,
   username: {:system, "CATENA_DB_USER"},
