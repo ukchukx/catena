@@ -47,7 +47,7 @@ defmodule Catena do
       persistence_module().habit_history_for_habit(id)
       |> Enum.map(&%{&1 | habit: slim_habit})
       |> Enum.map(&Map.delete(&1, :user))
-      |> Enum.map(&HabitHistory.new(&1.habit, &1.date, done: true))
+      |> Enum.map(&HabitHistory.new(&1.habit, &1.date, done: true, id: &1.id))
 
     UserManager.add_habit(user.id, habit)
     schedule = Schedule.new(habit, history, start_date, end_date, current_date)
