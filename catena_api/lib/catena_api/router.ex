@@ -33,7 +33,7 @@ defmodule CatenaApi.Router do
     post "/signin", AuthController, :signin
     post "/forgot", AuthController, :forgot
     post "/reset", AuthController, :reset
-    get "/public-habit/:id", HabitController, :public_habit
+    get "/public/habits/:id", HabitController, :public_habit
   end
 
   scope "/api", CatenaApi do
