@@ -23,7 +23,6 @@ defmodule CatenaApi.Utils do
       _ -> Map.put(data, :done, true)
     end
     |> Map.put(:date, NaiveDateTime.to_iso8601(date))
-    |> Map.delete(:id)
   end
 
   def merge_errors(errors) do
