@@ -93,13 +93,35 @@ defmodule Catena.Boundary.ScheduleManager do
   def handle_call(:state, _from, schedule), do: {:reply, schedule, schedule}
 
   def handle_call({:mark_past, date}, _from, schedule) do
-    {schedule, marked_history} = Schedule.mark_past_event(schedule, date)
-    {:reply, marked_history, schedule}
+    {schedule = %{past_events: past}, history} = Schedule.mark_past_event(schedule, date)
+
+    case history do
+      nil ->
+        {:reply, history, schedule}
+
+      _ ->
+        %{id: id} = Catena.save_habit_history(history)
+        history = %{history | id: id}
+        past = List.replace_at(past, 0, history)
+
+        {:reply, history, %{schedule | past_events: past}}
+    end
   end
 
   def handle_call({:mark_pending, date}, _from, schedule) do
-    {schedule, marked_history} = Schedule.mark_pending_event(schedule, date)
-    {:reply, marked_history, schedule}
+    {schedule = %{past_events: past}, history} = Schedule.mark_pending_event(schedule, date)
+
+    case history do
+      nil ->
+        {:reply, history, schedule}
+
+      _ ->
+        %{id: id} = Catena.save_habit_history(history)
+        history = %{history | id: id}
+        past = List.replace_at(past, 0, history)
+
+        {:reply, history, %{schedule | past_events: past}}
+    end
   end
 
   def handle_call({:update_habit, params}, _from, %{habit: habit} = schedule) do
@@ -114,7 +136,7 @@ defmodule Catena.Boundary.ScheduleManager do
 
     case count_current_event_excludes(schedule) do
       ^num_excludes -> :ok
-      _increased_num_excludes -> Catena.persistence_module().save_habit(habit)
+      _increased_num_excludes -> Catena.save_habit(habit)
     end
 
     {:noreply, schedule}
