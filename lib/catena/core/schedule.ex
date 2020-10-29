@@ -40,7 +40,7 @@ defmodule Catena.Core.Schedule do
           history -> history
         end
       end)
-      |> Enum.split_with(&(Utils.earlier?(&1.date, current_date) or &1.done))
+      |> Enum.split_with(&(past?(&1.date, current_date) or &1.done))
 
     # Store past events in reverse order for faster insertions and for
     # faster retrieval of the latest past event
@@ -66,13 +66,13 @@ defmodule Catena.Core.Schedule do
 
   def update_events(%__MODULE__{habit: %{archived: false}} = mod, date) do
     %{future_events: events, past_events: past_events} = mod
-    {past, future} = Enum.split_with(events, &(Utils.earlier?(&1.date, date) or &1.done))
+    {past, future} = Enum.split_with(events, &(past?(&1.date, date) or &1.done))
     %{mod | past_events: transfer_head_items(past, past_events), future_events: future}
   end
 
   def update_events(%__MODULE__{habit: %{archived: true, events: events} = habit} = mod, date) do
     %{future_events: future_events} = mod
-    {past, future} = Enum.split_with(future_events, &(Utils.earlier?(&1.date, date) or &1.done))
+    {past, future} = Enum.split_with(future_events, &(past?(&1.date, date) or &1.done))
 
     case past do
       [] ->
@@ -131,4 +131,8 @@ defmodule Catena.Core.Schedule do
   defp transfer_head_items([], list), do: list
 
   defp transfer_head_items([head | rest], list), do: transfer_head_items(rest, [head | list])
+
+  defp past?(habit_date, date) do
+    Utils.earlier?(%{habit_date | hour: 23, minute: 59, second: 59}, date)
+  end
 end
