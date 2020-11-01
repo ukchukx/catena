@@ -159,7 +159,7 @@ defmodule Catena.Core.Repeats.Monthly do
     end
   end
 
-  defp advance_date_to_next_monthday(date, target_day, interval) when target_day < 29 do
+  defp advance_date_to_next_monthday(date, target_day, interval) do
     %{day: day} = date
 
     case day < target_day do
@@ -167,13 +167,7 @@ defmodule Catena.Core.Repeats.Monthly do
         Utils.advance_date_by_days(date, target_day - day)
 
       false ->
-        days_to_add =
-          date
-          |> Date.days_in_month()
-          |> Kernel.-(day)
-          |> Kernel.+(target_day)
-
-        %{month: month} = new_date = Utils.advance_date_by_days(date, days_to_add)
+        %{month: month} = new_date = maybe_skip_unwanted_months(date, target_day)
 
         # If we've already added a month, decrement here using the -1
         months_to_add =
@@ -185,7 +179,48 @@ defmodule Catena.Core.Repeats.Monthly do
           end
           |> Kernel.-(month)
 
-        Utils.advance_date_by_months(new_date, months_to_add)
+        new_date
+        |> Utils.advance_date_by_months(months_to_add)
+        |> normalize_month()
     end
   end
+
+  defp normalize_month(%{day: day} = date) do
+    # If day is > than days in month, increment month until we get to a valid date
+    date
+    |> Date.days_in_month()
+    |> Kernel.<(day)
+    |> case do
+      true -> date |> Utils.advance_date_by_months(1) |> normalize_month()
+      false -> date
+    end
+  end
+
+  defp maybe_skip_unwanted_months(date, target_day) do
+    # Skip over Feb if target_date is > 28 in non-leap years or > 29 in leap years
+    end_of_month = %{date | day: Date.days_in_month(date)}
+    days_to_ignore = days_to_skip(end_of_month)
+    days_to_add =
+      cond do
+        days_to_ignore == 0 -> 0
+        target_day > days_to_ignore -> days_to_ignore
+        true -> 0
+      end
+      |> Kernel.+(target_day)
+
+      Utils.advance_date_by_days(end_of_month, days_to_add)
+  end
+
+  # We determine how many days to skip in the next month from the current month
+  # eg to skip over April, the current month should be March
+  defp days_to_skip(%{month: 1} = date) do
+    date
+    |> Date.leap_year?
+    |> case do
+      true -> 29
+      false -> 28
+    end
+  end
+  defp days_to_skip(%{month: m} = _date) when m in [3, 5, 8, 10], do: 30
+  defp days_to_skip(_date), do: 0
 end
