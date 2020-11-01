@@ -14,7 +14,8 @@ ENV CATENA_TOKEN_TTL_MINUTES=${CATENA_TOKEN_TTL_MINUTES}
 
 WORKDIR /app
 COPY . .
-RUN MIX_ENV=prod mix do deps.get --only prod, deps.compile, phx.digest, release --overwrite
+RUN cd catena_api && MIX_ENV=prod mix do deps.get --only prod, deps.compile
+RUN cd catena_api && MIX_ENV=prod mix do phx.digest, release --overwrite
 
 #  --- Run ---
 FROM alpine:latest AS runner
@@ -32,6 +33,7 @@ ENV CATENA_PASSWORD_RESET_TTL_MINUTES=${CATENA_PASSWORD_RESET_TTL_MINUTES}
 ENV CATENA_TOKEN_TTL_MINUTES=${CATENA_TOKEN_TTL_MINUTES}
 
 WORKDIR /app
-COPY --from=builder /app/_build/prod/rel/catena_api .
+COPY --from=builder /app/catena_api/_build/prod/rel/catena_api .
 
-CMD ["bin/catena_api", "start"]
+ENTRYPOINT ["bin/catena_api"]
+CMD ["start"]
