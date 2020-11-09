@@ -1,5 +1,5 @@
 defmodule Catena.Core.Repeats.Yearly do
-  alias Catena.Core.Repeats.Validators
+  alias Catena.Core.Repeats.{Monthly, Validators}
   alias Catena.Core.{Event, Utils}
 
   # FREQ=YEARLY;INTERVAL=1;BYMONTH=1;BYDAY=1SU,1TU;COUNT=5 - year by day
@@ -60,6 +60,7 @@ defmodule Catena.Core.Repeats.Yearly do
 
   @spec inflate(binary) :: {:error, any} | t
   @spec new(non_neg_integer(), month, keyword) :: {:error, any} | t
+  @spec adds_start_date?(Event.t()) :: boolean
   @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
   @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
 
@@ -82,6 +83,11 @@ defmodule Catena.Core.Repeats.Yearly do
     |> get_optional_params_validate_and_create(opts)
   end
 
+  def adds_start_date?(%Event{start_date: %{month: n}, repeats: %{month: m}}) when n != m,
+    do: false
+
+  def adds_start_date?(%Event{} = event), do: Monthly.adds_start_date?(event)
+
   def next(%__MODULE__{interval: n, month: m, monthdays: [day]}, from_date)
       when is_integer(day) do
     [advance_date_to_next_year(from_date, m, day, n)]
@@ -98,7 +104,9 @@ defmodule Catena.Core.Repeats.Yearly do
         day_index -> day_index
       end
 
-    do_next(rule, from_date, [], day_index) |> Enum.reverse()
+    rule
+    |> do_next(from_date, [], day_index)
+    |> Enum.reverse()
   end
 
   def next_occurences(%Event{repeats: %__MODULE__{count: nil}} = event, num),
@@ -108,29 +116,38 @@ defmodule Catena.Core.Repeats.Yearly do
     do: generate_next_occurences(event, num)
 
   defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
-    {num, event}
-    |> Stream.unfold(fn
-      {0, _event} ->
-        nil
+    dates =
+      {num, event}
+      |> Stream.unfold(fn
+        {0, _event} ->
+          nil
 
-      {n, event = %{start_date: prev_date}} ->
-        next_dates = next(rule, prev_date)
+        {n, event = %{start_date: prev_date}} ->
+          next_dates = next(rule, prev_date)
 
-        with true <- is_nil(end_date) do
-          {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-        else
-          false ->
-            next_dates =
-              Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
+          with true <- is_nil(end_date) do
+            {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
+          else
+            false ->
+              next_dates =
+                Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
 
-            case next_dates do
-              [] -> nil
-              _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-            end
-        end
-    end)
-    |> Enum.to_list()
-    |> List.flatten()
+              case next_dates do
+                [] -> nil
+                _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
+              end
+          end
+      end)
+      |> Enum.to_list()
+      |> List.flatten()
+
+    event
+    |> adds_start_date?
+    |> case do
+      false -> dates
+      true -> [event.start_date | dates]
+    end
+    |> Enum.take(num)
   end
 
   defp do_next(%__MODULE__{monthdays: d}, _date, acc, _idx) when length(d) == length(acc), do: acc

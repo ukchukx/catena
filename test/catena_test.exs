@@ -178,7 +178,7 @@ defmodule CatenaTest do
       repeats: "FREQ=DAILY;INTERVAL=2"
     }
 
-    assert %{events: [first, second]} =
+    assert %{events: [first, _second]} =
              Catena.add_event(habit.id, event_params, last_event_end_date)
 
     assert last_event_end_date == first.until

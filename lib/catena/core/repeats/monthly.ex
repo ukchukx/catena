@@ -59,6 +59,7 @@ defmodule Catena.Core.Repeats.Monthly do
 
   @spec inflate(binary) :: {:error, any} | t
   @spec new(non_neg_integer(), keyword) :: {:error, any} | t
+  @spec adds_start_date?(Event.t()) :: boolean
   @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
   @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
 
@@ -80,6 +81,16 @@ defmodule Catena.Core.Repeats.Monthly do
     |> get_optional_params_validate_and_create(opts)
   end
 
+  def adds_start_date?(%Event{start_date: %{day: day} = date, repeats: %{monthdays: days}}) do
+    -1
+    |> Kernel.in(days)
+    # last day of month included?
+    |> case do
+      false -> day in days
+      true -> Date.days_in_month(date) == day
+    end
+  end
+
   def next(%__MODULE__{interval: n, monthdays: [day]}, from_date) when is_integer(day) do
     [advance_date_to_next_monthday(from_date, day, n)]
   end
@@ -95,7 +106,9 @@ defmodule Catena.Core.Repeats.Monthly do
         day_index -> day_index
       end
 
-    do_next(rule, from_date, [], day_index) |> Enum.reverse()
+    rule
+    |> do_next(from_date, [], day_index)
+    |> Enum.reverse()
   end
 
   def next_occurences(%Event{repeats: %__MODULE__{count: nil}} = event, num),
@@ -105,29 +118,38 @@ defmodule Catena.Core.Repeats.Monthly do
     do: generate_next_occurences(event, num)
 
   defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
-    {num, event}
-    |> Stream.unfold(fn
-      {0, _event} ->
-        nil
+    dates =
+      {num, event}
+      |> Stream.unfold(fn
+        {0, _event} ->
+          nil
 
-      {n, event = %{start_date: prev_date}} ->
-        next_dates = next(rule, prev_date)
+        {n, event = %{start_date: prev_date}} ->
+          next_dates = next(rule, prev_date)
 
-        with true <- is_nil(end_date) do
-          {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-        else
-          false ->
-            next_dates =
-              Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
+          with true <- is_nil(end_date) do
+            {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
+          else
+            false ->
+              next_dates =
+                Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
 
-            case next_dates do
-              [] -> nil
-              _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-            end
-        end
-    end)
-    |> Enum.to_list()
-    |> List.flatten()
+              case next_dates do
+                [] -> nil
+                _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
+              end
+          end
+      end)
+      |> Enum.to_list()
+      |> List.flatten()
+
+    event
+    |> adds_start_date?
+    |> case do
+      false -> dates
+      true -> [event.start_date | dates]
+    end
+    |> Enum.take(num)
   end
 
   defp do_next(%__MODULE__{monthdays: d}, _date, acc, _idx) when length(d) == length(acc), do: acc
@@ -200,6 +222,7 @@ defmodule Catena.Core.Repeats.Monthly do
     # Skip over Feb if target_date is > 28 in non-leap years or > 29 in leap years
     end_of_month = %{date | day: Date.days_in_month(date)}
     days_to_ignore = days_to_skip(end_of_month)
+
     days_to_add =
       cond do
         days_to_ignore == 0 -> 0
@@ -208,19 +231,20 @@ defmodule Catena.Core.Repeats.Monthly do
       end
       |> Kernel.+(target_day)
 
-      Utils.advance_date_by_days(end_of_month, days_to_add)
+    Utils.advance_date_by_days(end_of_month, days_to_add)
   end
 
   # We determine how many days to skip in the next month from the current month
   # eg to skip over April, the current month should be March
   defp days_to_skip(%{month: 1} = date) do
     date
-    |> Date.leap_year?
+    |> Date.leap_year?()
     |> case do
       true -> 29
       false -> 28
     end
   end
+
   defp days_to_skip(%{month: m} = _date) when m in [3, 5, 8, 10], do: 30
   defp days_to_skip(_date), do: 0
 end

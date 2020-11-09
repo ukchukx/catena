@@ -16,6 +16,7 @@ defmodule Catena.Core.Repeats.Weekly do
 
   @spec inflate(binary) :: {:error, any} | t
   @spec new(non_neg_integer(), weekday, keyword) :: {:error, any} | t
+  @spec adds_start_date?(Event.t()) :: boolean
   @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
   @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
 
@@ -28,6 +29,10 @@ defmodule Catena.Core.Repeats.Weekly do
 
   def new(interval, days, opts \\ []) do
     get_optional_params_then_validate_and_create(%{interval: interval, days: days}, opts)
+  end
+
+  def adds_start_date?(%Event{start_date: start_date, repeats: %{days: weekdays}}) do
+    Utils.weekday(start_date) in Enum.map(weekdays, &weekday_offset/1)
   end
 
   def next(%__MODULE__{interval: n, days: [day]}, start_date) do
@@ -76,29 +81,38 @@ defmodule Catena.Core.Repeats.Weekly do
     do: generate_next_occurences(event, num)
 
   defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
-    {num, event}
-    |> Stream.unfold(fn
-      {0, _event} ->
-        nil
+    dates =
+      {num, event}
+      |> Stream.unfold(fn
+        {0, _event} ->
+          nil
 
-      {n, event = %{start_date: prev_date}} ->
-        next_dates = next(rule, prev_date)
+        {n, event = %{start_date: prev_date}} ->
+          next_dates = next(rule, prev_date)
 
-        with true <- is_nil(end_date) do
-          {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-        else
-          false ->
-            next_dates =
-              Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
+          with true <- is_nil(end_date) do
+            {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
+          else
+            false ->
+              next_dates =
+                Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
 
-            case next_dates do
-              [] -> nil
-              _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-            end
-        end
-    end)
-    |> Enum.to_list()
-    |> List.flatten()
+              case next_dates do
+                [] -> nil
+                _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
+              end
+          end
+      end)
+      |> Enum.to_list()
+      |> List.flatten()
+
+    event
+    |> adds_start_date?
+    |> case do
+      false -> dates
+      true -> [event.start_date | dates]
+    end
+    |> Enum.take(num)
   end
 
   defp get_optional_params_then_validate_and_create(attrs, opts) do

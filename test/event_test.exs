@@ -114,4 +114,21 @@ defmodule EventTest do
     dates = Event.next_occurences(%{event | excludes: [~N[2020-01-02 00:00:00]]}, num)
     assert length(dates) == num - 1
   end
+
+  describe "adds_start_date?" do
+    test "for weekly" do
+      assert Event.adds_start_date?(weekly_event(~N[2020-01-12 00:00:00], 1, [:su]))
+      refute Event.adds_start_date?(weekly_event(~N[2020-01-01 00:00:00], 1, [:su]))
+    end
+
+    test "for monthly" do
+      assert Event.adds_start_date?(monthly_event(~N[2020-01-01 00:00:00], 1, [1]))
+      refute Event.adds_start_date?(monthly_event(~N[2020-12-31 00:00:00], 1, [1]))
+    end
+
+    test "for yearly" do
+      assert Event.adds_start_date?(yearly_event(~N[2020-01-01 00:00:00], 1, 1, [1]))
+      refute Event.adds_start_date?(yearly_event(~N[2020-12-31 00:00:00], 1, 1, [1]))
+    end
+  end
 end
