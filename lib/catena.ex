@@ -297,7 +297,7 @@ defmodule Catena do
 
   defp start_of_year(date_time), do: %{date_time | month: 1, day: 1}
 
-  defp end_of_year(date_time), do: %{date_time | month: 12, day: 31}
+  defp end_of_year(date_time), do: %{date_time | month: 12, day: 31, hour: 23}
 
   defp start_schedule_from_habit(habit = %Habit{id: id, user: user}) do
     slim_habit = %Habit{
