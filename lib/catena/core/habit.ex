@@ -102,7 +102,7 @@ defmodule Catena.Core.Habit do
     end)
     |> Enum.to_list()
     |> List.flatten()
-    |> Enum.filter(fn date -> Utils.earlier?(date, end_date) or date == end_date end)
+    |> Enum.filter(fn dt -> Utils.earlier?(dt, end_date) or Utils.same_day?(dt, end_date) end)
     |> Enum.uniq()
   end
 

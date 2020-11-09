@@ -65,7 +65,7 @@ defmodule Catena.Core.Repeats.Validators do
 
   def validate_monthday(m) when is_list(m) do
     m
-    |> Enum.all?(&(&1 >= 1 and &1 <= 31))
+    |> Enum.all?(&((&1 >= 1 and &1 <= 31) or &1 == -1))
     |> case do
       true -> :ok
       false -> {:error, "monthdays value is not a valid day of the month"}

@@ -181,6 +181,48 @@ defmodule Catena.Core.Repeats.Monthly do
     end
   end
 
+  defp advance_date_to_next_monthday(date, -1, interval) do
+    %{day: day, month: month, year: year} = date
+    days_in_month = Date.days_in_month(date)
+
+    {new_date, interval} =
+      days_in_month
+      |> Kernel.==(day)
+      |> case do
+        true ->
+          date =
+            case month do
+              12 -> %{date | month: 1, day: days_in_month, year: year + 1}
+              _ -> %{date | month: month + 1, day: days_in_month}
+            end
+
+          {date, interval}
+
+        false ->
+          {%{date | day: days_in_month}, interval - 1}
+      end
+
+    # If we've already added a month, decrement here using the -1
+    months_to_add =
+      date
+      |> Utils.same_month?(new_date)
+      |> case do
+        true -> interval
+        false -> max(0, interval - 1)
+      end
+
+    new_date = Utils.advance_date_by_months(new_date, months_to_add)
+
+    days_in_month = Date.days_in_month(new_date)
+
+    days_in_month
+    |> Kernel.==(new_date.day)
+    |> case do
+      true -> new_date
+      false -> %{new_date | day: days_in_month}
+    end
+  end
+
   defp advance_date_to_next_monthday(date, target_day, interval) do
     %{day: day} = date
 

@@ -75,6 +75,15 @@ defmodule EventTest do
              |> Enum.chunk_every(2, 1, :discard)
              |> Enum.all?(fn [d1, d2] -> months_apart?(d1, d2, 2) end)
     end
+
+    test "for month-ends" do
+      event = monthly_event(~N[2020-01-01 00:00:00], 1, [-1])
+      num = 4
+      dates = Event.next_occurences(event, num)
+      assert length(dates) == num
+
+      assert Enum.all?(dates, fn date = %{day: d} -> d == Date.days_in_month(date) end)
+    end
   end
 
   describe "yearly events" do
