@@ -39,6 +39,7 @@ defmodule Catena do
       title: habit.title,
       archived: habit.archived
     }
+
     current_date = NaiveDateTime.utc_now()
     start_date = current_date |> reset_time() |> start_of_year
     end_date = end_of_year(start_date)
@@ -94,6 +95,7 @@ defmodule Catena do
   def new_habit(title, %User{} = user, events, opts \\ []) when is_binary(title) do
     start_schedule_process_fn =
       Keyword.get(opts, :start_schedule_process_fn, &start_schedule_process/1)
+
     habit =
       title
       |> Habit.new(user, events, opts)

@@ -57,13 +57,21 @@ defmodule Catena.Core.Habit do
     # if event date is earlier than start date, use start date
     # use start date
     start_date =
-      case Utils.earlier?(start_date, event.start_date) do
+      start_date
+      |> Utils.earlier?(event.start_date)
+      |> Kernel.or(Utils.same_day?(start_date, event.start_date))
+      |> case do
         true ->
           event.start_date
 
         false ->
           # Unroll event to get the last date <= start_date
-          %{event | repeats: %{repeats | until: start_date}} |> unroll() |> List.last()
+          %{event | repeats: %{repeats | until: start_date}}
+          |> unroll()
+          |> case do
+            [] -> start_date
+            list -> List.last(list)
+          end
       end
 
     end_date =

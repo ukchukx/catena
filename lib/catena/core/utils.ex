@@ -2,6 +2,7 @@ defmodule Catena.Core.Utils do
   alias Comeonin.Bcrypt
 
   @spec earlier?(NaiveDateTime.t(), NaiveDateTime.t()) :: boolean
+  @spec same_day?(NaiveDateTime.t(), NaiveDateTime.t()) :: boolean
   @spec days_to_seconds(non_neg_integer()) :: non_neg_integer
   @spec weekday(NaiveDateTime.t()) :: 1 | 2 | 3 | 4 | 5 | 6 | 7
   @spec beginning_of_week(NaiveDateTime.t()) :: NaiveDateTime.t()
@@ -23,6 +24,9 @@ defmodule Catena.Core.Utils do
   @spec validate_password(binary, binary) :: boolean
 
   def earlier?(dt1, dt2), do: NaiveDateTime.diff(dt1, dt2) < 0
+
+  def same_day?(%{year: y, month: m, day: d}, %{year: y, month: m, day: d}), do: true
+  def same_day?(_dt1, _dt2), do: false
 
   def days_to_seconds(days), do: days * 86400
 

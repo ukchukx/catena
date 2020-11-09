@@ -83,10 +83,10 @@ defmodule Catena.Core.Repeats.Yearly do
     |> get_optional_params_validate_and_create(opts)
   end
 
-  def adds_start_date?(%Event{start_date: %{month: n}, repeats: %{month: m}}) when n != m,
-    do: false
+  def adds_start_date?(%Event{start_date: %{month: m}, repeats: %{month: m}} = event),
+    do: Monthly.adds_start_date?(event)
 
-  def adds_start_date?(%Event{} = event), do: Monthly.adds_start_date?(event)
+  def adds_start_date?(%Event{}), do: false
 
   def next(%__MODULE__{interval: n, month: m, monthdays: [day]}, from_date)
       when is_integer(day) do
