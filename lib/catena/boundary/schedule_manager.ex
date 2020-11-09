@@ -148,9 +148,8 @@ defmodule Catena.Boundary.ScheduleManager do
 
   defp schedule_next_tick do
     now = NaiveDateTime.utc_now()
-    # 5 minutes
-    later = NaiveDateTime.add(now, 300)
+    five_minutes_later = NaiveDateTime.add(now, 300)
 
-    Process.send_after(self(), :tick, NaiveDateTime.diff(later, now, :millisecond))
+    Process.send_after(self(), :tick, NaiveDateTime.diff(five_minutes_later, now, :millisecond))
   end
 end

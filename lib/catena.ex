@@ -21,9 +21,8 @@ defmodule Catena do
 
     with true <- UserManager.running?(id) do
       persistence_module().user_habits(id)
-      |> Enum.map(&%{&1 | user: user})
       |> Enum.map(fn habit = %{events: events} ->
-        struct(Habit, %{habit | events: Enum.map(events, &inflate_event/1)})
+        struct(Habit, %{habit | events: Enum.map(events, &inflate_event/1), user: user})
       end)
       |> Enum.map(&start_schedule_process/1)
     end
@@ -31,28 +30,20 @@ defmodule Catena do
     user
   end
 
+  @spec restart_user_schedules(User.t(), [binary]) :: [Schedule.t()]
+  def restart_user_schedules(user = %{id: id}, habit_ids) do
+    persistence_module().user_habits(id)
+    |> Enum.filter(&(&1.id in habit_ids))
+    |> Enum.map(fn habit = %{events: events} ->
+      struct(Habit, %{habit | events: Enum.map(events, &inflate_event/1), user: user})
+    end)
+    |> Enum.map(&start_schedule_from_habit/1)
+  end
+
   @spec start_schedule_process(Habit.t()) :: Schedule.t()
   def start_schedule_process(habit = %Habit{id: id, user: user}) when not is_nil(id) do
-    slim_habit = %Habit{
-      user: %User{id: user.id},
-      id: id,
-      title: habit.title,
-      archived: habit.archived
-    }
-
-    current_date = NaiveDateTime.utc_now()
-    start_date = current_date |> reset_time() |> start_of_year
-    end_date = end_of_year(start_date)
-
-    history =
-      persistence_module().habit_history_for_habit(id)
-      |> Enum.map(&%{&1 | habit: slim_habit})
-      |> Enum.map(&Map.delete(&1, :user))
-      |> Enum.map(&HabitHistory.new(&1.habit, &1.date, done: true, id: &1.id))
-
+    schedule = start_schedule_from_habit(habit)
     UserManager.add_habit(user.id, habit)
-    schedule = Schedule.new(habit, history, start_date, end_date, current_date)
-    ScheduleManager.run_schedule(schedule)
     schedule
   end
 
@@ -307,4 +298,27 @@ defmodule Catena do
   defp start_of_year(date_time), do: %{date_time | month: 1, day: 1}
 
   defp end_of_year(date_time), do: %{date_time | month: 12, day: 31}
+
+  defp start_schedule_from_habit(habit = %Habit{id: id, user: user}) do
+    slim_habit = %Habit{
+      user: %User{id: user.id},
+      id: id,
+      title: habit.title,
+      archived: habit.archived
+    }
+
+    current_date = NaiveDateTime.utc_now()
+    start_date = current_date |> reset_time() |> start_of_year
+    end_date = end_of_year(start_date)
+
+    history =
+      persistence_module().habit_history_for_habit(id)
+      |> Enum.map(fn %{date: date, id: id} ->
+        HabitHistory.new(slim_habit, date, done: true, id: id)
+      end)
+
+    schedule = Schedule.new(habit, history, start_date, end_date, current_date)
+    ScheduleManager.run_schedule(schedule)
+    schedule
+  end
 end

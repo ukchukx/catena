@@ -7,9 +7,6 @@ defmodule Catena.Boundary.UserManager do
   @supervisor Catena.Supervisor.UserManager
   @registry Catena.Registry.UserManager
 
-  # TODO
-  # Schedule an event that runs at the end of the year to reset all schedules
-
   def active_users do
     @supervisor
     |> DynamicSupervisor.which_children()
@@ -90,6 +87,7 @@ defmodule Catena.Boundary.UserManager do
   end
 
   def init(%User{} = user) do
+    schedule_next_tick()
     {:ok, %{user: user, habits: []}}
   end
 
@@ -102,12 +100,25 @@ defmodule Catena.Boundary.UserManager do
   end
 
   def handle_call({:remove_habit, %{id: id} = _habit}, _from, %{habits: habits} = state) do
-    {:reply, :ok, %{state | habits: Enum.filter(habits, & &1 != id)}}
+    {:reply, :ok, %{state | habits: Enum.filter(habits, &(&1 != id))}}
   end
 
   def handle_call({:update, params}, _from, %{user: user} = state) do
     user = struct(user, params)
 
     {:reply, user, %{state | user: user}}
+  end
+
+  def handle_info(:new_year, %{user: user, habits: habits} = state) do
+    schedule_next_tick()
+    Catena.restart_user_schedules(user, habits)
+    {:noreply, state}
+  end
+
+  defp schedule_next_tick do
+    now = NaiveDateTime.utc_now()
+    next_new_year = NaiveDateTime.new!(now.year + 1, 1, 1, 0, 0, 0)
+
+    Process.send_after(self(), :new_year, NaiveDateTime.diff(next_new_year, now, :millisecond))
   end
 end
