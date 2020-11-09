@@ -77,6 +77,7 @@ defmodule Catena.Core.Schedule do
     case past do
       [] ->
         %{mod | future_events: future}
+
       past ->
         %{excludes: excludes} = current_event = List.last(events)
         excludes = excludes ++ Enum.map(past, & &1.date)

@@ -41,7 +41,7 @@ defmodule Catena.Core.Habit do
     events
     |> Enum.map(&generate_dates(&1, start_date, end_date))
     |> List.flatten()
-    |> Enum.sort(&(Utils.earlier?(&1, &2) or &1 == &2))
+    |> Enum.sort(&(Utils.earlier?(&1, &2) or Utils.same_day?(&1, &2)))
   end
 
   defp generate_dates(%Event{repeats: nil} = event, start_date, end_date) do
