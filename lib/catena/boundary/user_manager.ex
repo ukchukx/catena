@@ -117,7 +117,7 @@ defmodule Catena.Boundary.UserManager do
 
   defp schedule_next_tick do
     now = NaiveDateTime.utc_now()
-    next_new_year = NaiveDateTime.new!(now.year + 1, 1, 1, 0, 0, 0)
+    next_new_year = NaiveDateTime.new(now.year + 1, 1, 1, 0, 0, 0)
 
     Process.send_after(self(), :new_year, NaiveDateTime.diff(next_new_year, now, :millisecond))
   end
