@@ -9,8 +9,8 @@ defmodule CatenaApi.Plug.Auth do
          {:ok, claims} <- CatenaApi.Token.verify_and_validate(token, CatenaApi.Token.signer()) do
       assign(conn, :user, %{id: claims["id"], email: claims["email"]})
     else
-      {:error, [message: "Invalid token", claim: "exp", claim_val: _]} = err ->
-        Logger.warn("Cannot access '#{path}'. Token expired. ")
+      {:error, [message: "Invalid token", claim: "exp", claim_val: _]} ->
+        Logger.warn("Cannot access '#{path}'. Token expired.")
         unauthenticated(conn)
 
       [] ->
