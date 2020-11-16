@@ -10,6 +10,9 @@ defmodule Catena do
     |> Enum.each(fn map = %{email: email} ->
       email |> User.new(Keyword.new(map)) |> start_user_process
     end)
+
+    num_users_loaded = Catena.Boundary.UserManager.active_users() |> length
+    Logger.info("Loaded #{num_users_loaded} user(s)")
   end
 
   @spec stop :: :ok
