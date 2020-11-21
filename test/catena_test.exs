@@ -171,17 +171,16 @@ defmodule CatenaTest do
     user = Catena.new_user("test@email.com", "password")
     habit = Catena.new_habit("Test habit", user, [daily_event()])
     last_event_end_date = ~N[2020-10-10 00:00:00]
+    day_before_last_event_date = ~N[2020-10-09 00:00:00]
 
     event_params = %{
-      start_date: ~N[2020-10-11 00:00:00],
+      start_date: last_event_end_date,
       excludes: [],
       repeats: "FREQ=DAILY;INTERVAL=2"
     }
 
-    assert %{events: [first, _second]} =
-             Catena.add_event(habit.id, event_params, last_event_end_date)
-
-    assert last_event_end_date == first.until
+    assert %{events: [first, _second]} = Catena.add_event(habit.id, event_params)
+    assert day_before_last_event_date == first.repeats.until
     assert ScheduleManager.running?(habit.id)
   end
 end

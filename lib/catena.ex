@@ -200,17 +200,23 @@ defmodule Catena do
     end
   end
 
-  @spec add_event(binary, map, NaiveDateTime.t()) :: Habit.t() | nil
-  def add_event(id, event_params, until_for_previous_event) do
+  @spec add_event(binary, map) :: Habit.t() | nil
+  def add_event(id, event_params = %{start_date: start_date}) do
     case get_habit(id) do
       nil ->
         nil
 
       %{habit: %Habit{events: events} = habit} ->
+         # End current event a day before start_date
+        day_before_start_date = NaiveDateTime.add(start_date, -86400)
         last_event =
-          events
-          |> List.last()
-          |> Map.put(:until, until_for_previous_event)
+          case List.last(events) do
+            %{repeats: nil} = last_event ->
+              last_event
+
+            %{repeats: repeats} = last_event ->
+              %{last_event | repeats: %{repeats | until: day_before_start_date}}
+          end
 
         event =
           event_params

@@ -126,7 +126,6 @@ defmodule CatenaApi.HabitController do
     %{"id" => id} = params
     default_date = NaiveDateTime.utc_now() |> NaiveDateTime.to_iso8601()
     last_until_str = Map.get(params, "last_until", default_date)
-    last_until = NaiveDateTime.from_iso8601!(last_until_str)
     start_date = Map.get(params, "start_date", last_until_str) |> NaiveDateTime.from_iso8601!()
     excludes = params |> Map.get("excludes", []) |> Enum.map(&NaiveDateTime.from_iso8601/1)
     repeats =  Map.get(params, "repeats")
@@ -134,7 +133,7 @@ defmodule CatenaApi.HabitController do
 
     with %{habit: habit} <- Catena.get_habit(id),
          true <- habit.user.id == user_id,
-         _habit <- Catena.add_event(id, event_params, last_until),
+         _habit <- Catena.add_event(id, event_params),
          schedule <- Catena.get_habit(id),
          user <- Catena.get_user(id: user_id),
          schedule <- CatenaApi.Utils.schedule_to_map(schedule, user) do
