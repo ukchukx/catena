@@ -14,7 +14,7 @@ defmodule CatenaApi.AuthController do
       habits =
         id
         |> Catena.get_habits()
-        |> Enum.map(&CatenaApi.Utils.schedule_to_map(&1, user))
+        |> Enum.map(&CatenaApi.Utils.schedule_to_map/1)
 
       user =
         user
@@ -92,7 +92,7 @@ defmodule CatenaApi.AuthController do
       habits =
         id
         |> Catena.get_habits()
-        |> Enum.map(&CatenaApi.Utils.schedule_to_map(&1, user))
+        |> Enum.map(&CatenaApi.Utils.schedule_to_map/1)
 
       user =
         user
@@ -129,7 +129,7 @@ defmodule CatenaApi.AuthController do
     habits =
       id
       |> Catena.get_habits()
-      |> Enum.map(&CatenaApi.Utils.schedule_to_map(&1, user))
+      |> Enum.map(&CatenaApi.Utils.schedule_to_map/1)
 
     user =
       user
