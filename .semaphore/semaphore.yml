@@ -59,29 +59,29 @@ blocks:
           commands:
             - mix format --check-formatted
 
-  - name: Test
-    task:
-      env_vars:
-        - name: MIX_ENV
-          value: "test"
-      secrets:
-        - name: catena-env-vars
-      prologue:
-        commands:
-          - sudo apt-get install -y -qq mysql-client
-          - checkout
-          - cd catena_api
-          - kiex install 1.11
-          - sem-version elixir 1.11
-          - mix local.hex --force
-          - mix local.rebar --force
-          - cache restore
-          - mix deps.get
-          - sem-service start mysql 8.0 --username=$CATENA_DB_USER --password=$CATENA_DB_PASS --db=$CATENA_DB_NAME
-      jobs:
-        - name: ex_unit
-          commands:
-            - mix test
+  # - name: Test
+  #   task:
+  #     env_vars:
+  #       - name: MIX_ENV
+  #         value: "test"
+  #     secrets:
+  #       - name: catena-env-vars
+  #     prologue:
+  #       commands:
+  #         - sudo apt-get install -y -qq mysql-client
+  #         - checkout
+  #         - cd catena_api
+  #         - kiex install 1.11
+  #         - sem-version elixir 1.11
+  #         - mix local.hex --force
+  #         - mix local.rebar --force
+  #         - cache restore
+  #         - mix deps.get
+  #         - sem-service start mysql 8.0 --username=$CATENA_DB_USER --password=$CATENA_DB_PASS --db=$CATENA_DB_NAME
+  #     jobs:
+  #       - name: ex_unit
+  #         commands:
+  #           - mix test
 
   - name: Build Docker image
     task:
