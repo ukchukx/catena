@@ -1,4 +1,6 @@
 defmodule CatenaApi.ErrorView do
+  @moduledoc false
+
   use CatenaApi, :view
 
   # If you want to customize a particular status code

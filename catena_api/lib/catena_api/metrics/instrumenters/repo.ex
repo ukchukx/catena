@@ -1,4 +1,6 @@
 defmodule CatenaApi.Metrics.RepoInstrumenter do
+  @moduledoc false
+
   require Logger
 
   use Prometheus.Metric
@@ -34,7 +36,7 @@ defmodule CatenaApi.Metrics.RepoInstrumenter do
     Gauge.set([name: @total_time, labels: [query]], total_time)
   end
 
-  defp remove_unnecessary_chars(query), do:  replace_select_fields_with_star(query)
+  defp remove_unnecessary_chars(query), do: replace_select_fields_with_star(query)
 
   defp replace_select_fields_with_star(query),
     do: String.replace(query, ~r/^SELECT.*FROM/, "SELECT * FROM")

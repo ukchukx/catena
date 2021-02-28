@@ -25,7 +25,9 @@ defmodule CatenaApi.AuthControllerTest do
     end
 
     test "fails when given an existing email", %{conn: conn, user: user} do
-      conn = post conn, Routes.auth_path(conn, :signup), %{email: user.email, password: "password"}
+      conn =
+        post conn, Routes.auth_path(conn, :signup), %{email: user.email, password: "password"}
+
       json = json_response(conn, 400)
 
       refute json["success"]
@@ -45,7 +47,12 @@ defmodule CatenaApi.AuthControllerTest do
     end
 
     test "fails when given a non-existing email", %{conn: conn} do
-      conn = post conn, Routes.auth_path(conn, :signin), %{email: "user@email.com", password: "password"}
+      conn =
+        post conn, Routes.auth_path(conn, :signin), %{
+          email: "user@email.com",
+          password: "password"
+        }
+
       json = json_response(conn, 403)
 
       refute json["success"]
@@ -57,7 +64,7 @@ defmodule CatenaApi.AuthControllerTest do
   describe "getting the current user" do
     test "succeeds when given a valid token", %{conn: conn, user: user} do
       conn = authenticated_conn(conn, user)
-      conn = get conn, Routes.auth_path(conn, :me)
+      conn = get(conn, Routes.auth_path(conn, :me))
       json = json_response(conn, 200)
 
       assert json["success"]
@@ -65,7 +72,7 @@ defmodule CatenaApi.AuthControllerTest do
     end
 
     test "fails when not given a token", %{conn: conn} do
-      conn = get conn, Routes.auth_path(conn, :me)
+      conn = get(conn, Routes.auth_path(conn, :me))
       assert json_response(conn, 401)
     end
   end
@@ -130,5 +137,4 @@ defmodule CatenaApi.AuthControllerTest do
       refute json["success"]
     end
   end
-
 end

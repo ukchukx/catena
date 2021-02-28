@@ -1,4 +1,6 @@
 defmodule CatenaApi.HabitController do
+  @moduledoc false
+
   alias Catena.Core.Event
 
   use CatenaApi, :controller
@@ -13,8 +15,7 @@ defmodule CatenaApi.HabitController do
 
   def habit(%{assigns: %{user: %{id: user_id, email: email}}} = conn, %{"id" => id}) do
     with %{habit: habit} = schedule <- Catena.get_habit(id),
-        true <- habit.user.id == user_id or habit.visibility == "public",
-        user <- Catena.get_user(id: habit.user.id) do
+         true <- habit.user.id == user_id or habit.visibility == "public" do
       json(conn, %{success: true, data: CatenaApi.Utils.schedule_to_map(schedule)})
     else
       false ->
@@ -34,10 +35,9 @@ defmodule CatenaApi.HabitController do
   end
 
   def habit(conn, %{"id" => id}) do
-    with %{habit: habit = %{user: %{id: user_id}}} = schedule <- Catena.get_habit(id),
-        true <- habit.visibility == "public",
-        user <- Catena.get_user(id: user_id),
-        schedule <- CatenaApi.Utils.schedule_to_map(schedule) do
+    with %{habit: habit} = schedule <- Catena.get_habit(id),
+         true <- habit.visibility == "public",
+         schedule <- CatenaApi.Utils.schedule_to_map(schedule) do
       json(conn, %{success: true, data: schedule})
     else
       false ->
@@ -60,14 +60,14 @@ defmodule CatenaApi.HabitController do
     title = to_string(title)
 
     with %{"start_date" => start_date} <- params,
-        viz <- Map.get(params, "visibility", "private"),
-        excludes <- params |> Map.get("excludes", []) |> Enum.map(&NaiveDateTime.from_iso8601/1),
-        repetition <- params |> Map.get("repeats") |> Event.inflate_repetition(),
-        start_date <- NaiveDateTime.from_iso8601!(start_date),
-        event <- Event.new(start_date, [repeats: repetition, excludes: excludes]),
-        user <- Catena.get_user(id: id),
-        %{id: handle_id} <- Catena.new_habit(title, user, [event], [visibility: viz]),
-        schedule <- Catena.get_habit(handle_id) |> CatenaApi.Utils.schedule_to_map do
+         viz <- Map.get(params, "visibility", "private"),
+         excludes <- params |> Map.get("excludes", []) |> Enum.map(&NaiveDateTime.from_iso8601/1),
+         repetition <- params |> Map.get("repeats") |> Event.inflate_repetition(),
+         start_date <- NaiveDateTime.from_iso8601!(start_date),
+         event <- Event.new(start_date, repeats: repetition, excludes: excludes),
+         user <- Catena.get_user(id: id),
+         %{id: handle_id} <- Catena.new_habit(title, user, [event], visibility: viz),
+         schedule <- Catena.get_habit(handle_id) |> CatenaApi.Utils.schedule_to_map() do
       Logger.info("Habit '#{title}' for '#{email}' created")
       CatenaApi.Endpoint.broadcast!("user:" <> id, "habit_created", %{habit: schedule})
 
@@ -77,14 +77,14 @@ defmodule CatenaApi.HabitController do
     else
       err when is_list(err) ->
         err = CatenaApi.Utils.merge_errors(err)
-        Logger.error("Could not create habit for '#{email}': #{inspect err}")
+        Logger.error("Could not create habit for '#{email}': #{inspect(err)}")
 
         conn
         |> put_status(422)
         |> json(%{success: false, errors: err, message: "Validation failed"})
 
       err ->
-        Logger.error("Could not create habit '#{title}' for '#{email}': #{inspect err}")
+        Logger.error("Could not create habit '#{title}' for '#{email}': #{inspect(err)}")
 
         conn
         |> put_status(400)
@@ -99,8 +99,7 @@ defmodule CatenaApi.HabitController do
          v <- Map.get(params, "visibility", v),
          a <- Map.get(params, "archived", habit.archived),
          _habit <- Catena.update_habit(id, %{title: t, visibility: v, archived: a}),
-         user <- Catena.get_user(id: user_id),
-         schedule <- id |> Catena.get_habit() |> CatenaApi.Utils.schedule_to_map do
+         schedule <- id |> Catena.get_habit() |> CatenaApi.Utils.schedule_to_map() do
       Logger.info("Habit '#{id}' updated")
       CatenaApi.Endpoint.broadcast!("user:" <> user_id, "habit_updated", %{habit: schedule})
       json(conn, %{success: true, data: schedule})
@@ -127,15 +126,13 @@ defmodule CatenaApi.HabitController do
     last_until_str = Map.get(params, "last_until", default_date)
     start_date = Map.get(params, "start_date", last_until_str) |> NaiveDateTime.from_iso8601!()
     excludes = params |> Map.get("excludes", []) |> Enum.map(&NaiveDateTime.from_iso8601/1)
-    repeats =  Map.get(params, "repeats")
+    repeats = Map.get(params, "repeats")
     event_params = %{repeats: repeats, excludes: excludes, start_date: start_date}
 
     with %{habit: habit} <- Catena.get_habit(id),
          true <- habit.user.id == user_id,
          _habit <- Catena.add_event(id, event_params),
-         schedule <- Catena.get_habit(id),
-         user <- Catena.get_user(id: user_id),
-         schedule <- CatenaApi.Utils.schedule_to_map(schedule) do
+         schedule <- id |> Catena.get_habit() |> CatenaApi.Utils.schedule_to_map() do
       Logger.info("Schedule for habit '#{id}' updated")
       CatenaApi.Endpoint.broadcast!("user:" <> user_id, "habit_updated", %{habit: schedule})
 
@@ -159,9 +156,9 @@ defmodule CatenaApi.HabitController do
 
   def delete(%{assigns: %{user: %{id: user_id, email: email}}} = conn, %{"id" => id}) do
     with %{habit: habit} = sched <- Catena.get_habit(id),
-        true <- habit.user.id == user_id,
-        :ok <- Catena.delete_habit(id),
-        sched <- CatenaApi.Utils.schedule_to_map(sched) do
+         true <- habit.user.id == user_id,
+         :ok <- Catena.delete_habit(id),
+         sched <- CatenaApi.Utils.schedule_to_map(sched) do
       Logger.info("Habit '#{id}' deleted")
       CatenaApi.Endpoint.broadcast!("user:" <> user_id, "habit_deleted", %{habit: sched})
 
@@ -189,7 +186,7 @@ defmodule CatenaApi.HabitController do
     with %{habit: habit} <- Catena.get_habit(id),
          default_date <- NaiveDateTime.utc_now() |> NaiveDateTime.to_iso8601(),
          date <- Map.get(params, "date", default_date) |> NaiveDateTime.from_iso8601!(),
-         true <- habit.user.id == user_id  do
+         true <- habit.user.id == user_id do
       case Catena.mark_pending_habit(id, date) do
         nil ->
           Logger.warn("Cannot mark habit '#{id}': not pending")
@@ -201,6 +198,7 @@ defmodule CatenaApi.HabitController do
         history ->
           Logger.info("Habit '#{id}' marked on #{date}")
           history = CatenaApi.Utils.habit_history_to_map(history)
+
           schedule =
             id
             |> Catena.get_habit()

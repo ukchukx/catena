@@ -15,6 +15,7 @@ defmodule CatenaApi.ConnCase do
   this option is not recommended for other databases.
   """
 
+  alias Ecto.Adapters.SQL.Sandbox
   use ExUnit.CaseTemplate
 
   using do
@@ -33,7 +34,7 @@ defmodule CatenaApi.ConnCase do
   end
 
   setup _tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(CatenaPersistence.Repo)
+    :ok = Sandbox.checkout(CatenaPersistence.Repo)
     {:ok, conn: CatenaApi.ConnHelpers.fresh_conn()}
   end
 end

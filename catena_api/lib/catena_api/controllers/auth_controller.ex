@@ -1,4 +1,6 @@
 defmodule CatenaApi.AuthController do
+  @moduledoc false
+
   alias Catena.Core.Utils
 
   use CatenaApi, :controller
@@ -8,7 +10,7 @@ defmodule CatenaApi.AuthController do
     Logger.info("'#{email}' attempting to sign in")
 
     with {:ok, user = %{id: id}} <- Catena.authenticate_user(email, pass),
-         token <- CatenaApi.Token.get_token(%{email: email, id: user.id}) do
+         token <- CatenaApi.Token.get_token(%{email: email, id: id}) do
       Logger.info("Authentication attempt by '#{email}' succeeded")
 
       habits =
@@ -24,7 +26,7 @@ defmodule CatenaApi.AuthController do
       json(conn, %{success: true, data: user, token: token})
     else
       {:error, _} = err ->
-        Logger.warn("Authentication attempt by '#{email}' failed due to #{inspect err}")
+        Logger.warn("Authentication attempt by '#{email}' failed due to #{inspect(err)}")
 
         conn
         |> put_status(403)
@@ -47,7 +49,7 @@ defmodule CatenaApi.AuthController do
     else
       errors ->
         errors = CatenaApi.Utils.merge_errors(errors)
-        Logger.warn("Sign up attempt by '#{email}' failed due to #{inspect errors}")
+        Logger.warn("Sign up attempt by '#{email}' failed due to #{inspect(errors)}")
 
         conn
         |> put_status(400)
@@ -56,7 +58,7 @@ defmodule CatenaApi.AuthController do
   end
 
   def forgot(conn, %{"email" => email}) do
-    with %{}  <- Catena.get_user(email: email),
+    with %{} <- Catena.get_user(email: email),
          token <- Utils.random_string(20),
          hashed_token <- Utils.hash_password(token),
          %{} <- Catena.save_reset(email, hashed_token, CatenaApi.Utils.expiry_ttl_in_seconds()) do
@@ -64,7 +66,9 @@ defmodule CatenaApi.AuthController do
       json(conn, %{success: true, message: "Password reset email sent"})
     else
       {:error, ch} ->
-        Logger.warn("Cannot send reset token for '#{email}': could not save token: #{inspect ch}")
+        Logger.warn(
+          "Cannot send reset token for '#{email}': could not save token: #{inspect(ch)}"
+        )
 
         conn
         |> put_status(400)
@@ -108,8 +112,8 @@ defmodule CatenaApi.AuthController do
         |> put_status(406)
         |> json(%{success: false, message: "Reset token expired"})
 
-      {:error, ch} ->
-        Logger.warn("Reset token for '#{email}' could not be deleted: #{inspect ch}")
+      err ->
+        Logger.warn("Reset token for '#{email}' could not be deleted: #{inspect(err)}")
 
         conn
         |> put_status(500)
@@ -126,6 +130,7 @@ defmodule CatenaApi.AuthController do
 
   def me(%{assigns: %{user: %{id: id}}} = conn, _params) do
     user = Catena.get_user(id: id)
+
     habits =
       id
       |> Catena.get_habits()
@@ -156,6 +161,4 @@ defmodule CatenaApi.AuthController do
         |> json(%{success: false, message: "Current password could not be verified."})
     end
   end
-
-
 end

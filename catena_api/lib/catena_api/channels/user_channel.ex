@@ -1,4 +1,6 @@
 defmodule CatenaApi.UserChannel do
+  @moduledoc false
+
   use CatenaApi, :channel
 
   require Logger

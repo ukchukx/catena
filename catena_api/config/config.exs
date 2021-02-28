@@ -19,7 +19,6 @@ config :catena_api, CatenaApi.Endpoint,
   pubsub_server: CatenaApi.PubSub,
   live_view: [signing_salt: "cG66nitf"]
 
-
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

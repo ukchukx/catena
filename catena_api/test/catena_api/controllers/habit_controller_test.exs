@@ -1,7 +1,9 @@
 defmodule CatenaApi.HabitControllerTest do
+  @moduledoc false
+
+  alias Catena.Boundary.ScheduleManager
   alias Catena.Core.{Event, HabitHistory, Schedule}
   alias Catena.Core.Repeats.Daily
-  alias Catena.Boundary.ScheduleManager
 
   use CatenaApi.ConnCase
 
@@ -46,6 +48,7 @@ defmodule CatenaApi.HabitControllerTest do
         visibility: "private",
         repeats: "FREQ=DAILY;INTERVAL=1"
       }
+
       conn = post conn, Routes.habit_path(conn, :create), attrs
       json = json_response(conn, 201)
 
@@ -57,34 +60,34 @@ defmodule CatenaApi.HabitControllerTest do
 
   describe "fetching a user's habit" do
     test "returns the habit if owner requests", %{conn: conn, habit: %{id: habit_id}} do
-      conn = get conn, Routes.habit_path(conn, :habit, habit_id)
+      conn = get(conn, Routes.habit_path(conn, :habit, habit_id))
       %{"data" => %{"id" => id, "history" => history}} = json_response(conn, 200)
 
       assert id == habit_id
-      assert Enum.all?(history, & ! &1["done"])
+      assert Enum.all?(history, &(!&1["done"]))
       assert 4 == length(history)
     end
 
     test "returns 404 if habit does not exist", %{conn: conn} do
-      conn = get conn, Routes.habit_path(conn, :habit, "unknown")
+      conn = get(conn, Routes.habit_path(conn, :habit, "unknown"))
       assert json_response(conn, 404)
     end
 
     test "returns the habit if public", %{conn2: conn, user: u} do
       opts = [visibility: "public", start_schedule_process_fn: &start_schedule/1]
       habit = Catena.new_habit("Duo", u, [daily_event()], opts)
-      conn = get conn, Routes.habit_path(conn, :public_habit, habit.id)
+      conn = get(conn, Routes.habit_path(conn, :public_habit, habit.id))
       %{"data" => %{"id" => id, "history" => history}} = json_response(conn, 200)
 
       assert id == habit.id
       assert 4 == length(history)
-      assert Enum.all?(history, & ! &1["done"])
+      assert Enum.all?(history, &(!&1["done"]))
     end
   end
 
   describe "deleting a user's habit" do
     test "succeeds if the owner requests", %{conn: conn, habit: %{id: habit_id}} do
-      conn = delete conn, Routes.habit_path(conn, :habit, habit_id)
+      conn = delete(conn, Routes.habit_path(conn, :habit, habit_id))
       assert json_response(conn, 204)
     end
 
@@ -93,7 +96,7 @@ defmodule CatenaApi.HabitControllerTest do
       opts = [visibility: "public", start_schedule_process_fn: &start_schedule/1]
       habit = Catena.new_habit("Duo", user, [daily_event()], opts)
 
-      conn = delete conn, Routes.habit_path(conn, :habit, habit.id)
+      conn = delete(conn, Routes.habit_path(conn, :habit, habit.id))
       assert json_response(conn, 404)
     end
   end
@@ -104,7 +107,9 @@ defmodule CatenaApi.HabitControllerTest do
       habit = Catena.new_habit("Duo", user, [daily_event()], opts)
       current_date = NaiveDateTime.to_iso8601(~N[2020-10-22 00:00:00])
 
-      conn = post conn, Routes.habit_path(conn, :mark_pending, habit.id), %{"date" => current_date}
+      conn =
+        post conn, Routes.habit_path(conn, :mark_pending, habit.id), %{"date" => current_date}
+
       json = json_response(conn, 200)
       assert json["data"]["habit_id"] == habit.id
     end
@@ -114,7 +119,9 @@ defmodule CatenaApi.HabitControllerTest do
       habit = Catena.new_habit("Duo", user, [daily_event()], opts)
       current_date = NaiveDateTime.to_iso8601(~N[2020-10-22 00:00:00])
 
-      conn = post conn, Routes.habit_path(conn, :mark_pending, habit.id), %{"date" => current_date}
+      conn =
+        post conn, Routes.habit_path(conn, :mark_pending, habit.id), %{"date" => current_date}
+
       assert json_response(conn, 400)
     end
   end
@@ -145,10 +152,10 @@ defmodule CatenaApi.HabitControllerTest do
         excludes: [],
         repeats: "FREQ=DAILY;INTERVAL=2"
       }
+
       conn = put conn, Routes.habit_path(conn, :change_schedule, id), attrs
       json = json_response(conn, 200)
       assert json |> get_in(["data", "events"]) |> length == 2
     end
   end
-
 end
