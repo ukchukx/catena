@@ -20,7 +20,7 @@ spec:
         image: mysql:5.7
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 3600
+        - containerPort: 3306
         volumeMounts:
         - name: catena-data
           mountPath: /var/lib/mysql
@@ -47,6 +47,6 @@ metadata:
 spec:
   ports:
   - name: mysql
-    port: 3600
+    port: 3306
   selector:
     app: catena-db
