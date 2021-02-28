@@ -19,14 +19,11 @@ spec:
       - name: headless-commerce-package-access-token
       initContainers:
       - name: check-db-ready
-        image: mysql:8.0
-        command: ['sh', '-c', 'until mysqladmin ping -h catena-db -u root --password=$$MYSQL_ROOT_PASSWORD; do echo waiting for database; sleep 2; done;']
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: catena-secrets
-              key: dbPass
+        image: groundnuty/k8s-wait-for:v1.3
+        imagePullPolicy: Always
+        args:
+          - "pod"
+          - "-lapp=catena-db"
       containers:
       - name: catena-api
         image: ghcr.io/headless-commerce/catena_api
