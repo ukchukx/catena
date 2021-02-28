@@ -1,4 +1,6 @@
 defmodule CatenaPersistence.Repo do
+  @moduledoc false
+
   use Ecto.Repo,
     otp_app: :catena_persistence,
     adapter: Ecto.Adapters.MyXQL

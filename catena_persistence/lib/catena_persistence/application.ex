@@ -23,7 +23,9 @@ defmodule CatenaPersistence.Application do
         end
 
         res
-      err_res -> err_res
+
+      err_res ->
+        err_res
     end
   end
 end

@@ -1,4 +1,6 @@
 defmodule CatenaPersistence.HabitHistory do
+  @moduledoc false
+
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -7,9 +9,9 @@ defmodule CatenaPersistence.HabitHistory do
   @fields ~w[id date habit_id user_id]a
 
   schema "habit_history" do
-    field :date, :naive_datetime
-    field :user_id, :binary_id
-    field :habit_id, :binary_id
+    field(:date, :naive_datetime)
+    field(:user_id, :binary_id)
+    field(:habit_id, :binary_id)
 
     timestamps(type: :utc_datetime)
   end
