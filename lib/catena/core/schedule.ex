@@ -13,7 +13,6 @@ defmodule Catena.Core.Schedule do
         }
   @type mark_result :: {t(), nil | HabitHistory.t()}
 
-
   def new(habit, habit_history, start_date, end_date, current_date) do
     slim_habit = %Habit{
       id: habit.id,

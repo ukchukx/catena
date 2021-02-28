@@ -12,7 +12,6 @@ defmodule Catena.Core.HabitHistory do
           done: boolean
         }
 
-
   def new(habit, date, opts \\ []) do
     attrs = %{
       habit: habit,
