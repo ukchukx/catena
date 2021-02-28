@@ -17,13 +17,6 @@ spec:
     spec:
       imagePullSecrets:
       - name: headless-commerce-package-access-token
-      initContainers:
-      - name: check-db-ready
-        image: groundnuty/k8s-wait-for:v1.3
-        imagePullPolicy: Always
-        args:
-          - "pod"
-          - "-lapp=catena-db"
       containers:
       - name: catena-api
         image: ghcr.io/headless-commerce/catena_api
