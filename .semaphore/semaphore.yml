@@ -50,6 +50,7 @@ blocks:
           - mix local.hex --force
           - mix local.rebar --force
           - cache restore
+          - mix deps.get
       jobs:
         - name: credo
           commands:
@@ -74,6 +75,7 @@ blocks:
           - mix local.hex --force
           - mix local.rebar --force
           - cache restore
+          - mix deps.get
           - sem-service start mysql 8.0 --username=$CATENA_DB_USER --password=$CATENA_DB_PASS --db=$CATENA_DB_NAME
       jobs:
         - name: ex_unit
