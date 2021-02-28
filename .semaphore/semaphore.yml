@@ -1,0 +1,102 @@
+version: v1.0
+name: Catena API build pipeline
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+blocks:
+  - name: Check master
+    task:
+      jobs:
+        - name: check master
+          commands:
+            - if [ "$SEMAPHORE_GIT_BRANCH" != "master" ]; then false; fi
+            - echo 'Master branch received'
+
+  - name: Compile
+    task:
+      env_vars:
+        - name: MIX_ENV
+          value: "dev"
+      secrets:
+        - name: catena-env-vars
+      prologue:
+        commands:
+          - checkout
+          - kiex install 1.11
+          - sem-version elixir 1.11
+          - mix local.hex --force
+          - mix local.rebar --force
+      jobs:
+        - name: Compile
+          commands:
+            - cache restore
+            - mix do deps.get, compile
+            - cache store
+
+  - name: Analyze
+    task:
+      env_vars:
+        - name: MIX_ENV
+          value: "dev"
+      prologue:
+        commands:
+          - checkout
+          - kiex install 1.11
+          - sem-version elixir 1.11
+          - mix local.hex --force
+          - mix local.rebar --force
+          - cache restore
+      jobs:
+        - name: credo
+          commands:
+            - mix credo --strict
+        - name: formatter
+          commands:
+            - mix format --check-formatted
+
+  - name: Test
+    task:
+      env_vars:
+        - name: MIX_ENV
+          value: "test"
+      secrets:
+        - name: catena-env-vars
+      prologue:
+        commands:
+          - checkout
+          - kiex install 1.11
+          - sem-version elixir 1.11
+          - mix local.hex --force
+          - mix local.rebar --force
+          - cache restore
+          - sem-service start mysql 8.0 --username=$CATENA_DB_USER --password=$CATENA_DB_PASS --db=$CATENA_DB_NAME
+      jobs:
+        - name: ex_unit
+          commands:
+            - mix test
+
+  - name: Build Docker image
+    task:
+      secrets:
+        - name: headless-commerce-pat
+      prologue:
+        commands:
+          - checkout
+      jobs:
+        - name: build image
+          commands:
+            - docker build -t catena_api .
+            - echo $HEADLESS_COMMERCE_PAT | docker login ghcr.io -u ukchukx --password-stdin
+            - docker image tag catena_api ghcr.io/headless-commerce/catena_api
+            - docker image push ghcr.io/headless-commerce/catena_api
+            - cache store k8s-$SEMAPHORE_WORKFLOW_ID k8s
+
+promotions:
+  - name: Deploy to production
+    pipeline_file: deploy.yml
+    auto_promote_on:
+      - result: passed
+        branch:
+          - master
