@@ -76,7 +76,8 @@ blocks:
           - mix local.rebar --force
           - cache restore
           - mix deps.get
-          - sem-service start mysql 8.0 --username=$CATENA_DB_USER --password=$CATENA_DB_PASS --db=$CATENA_DB_NAME
+          - sem-service start mysql 5.7 --username=$CATENA_DB_USER --password=$CATENA_DB_PASS --db=$CATENA_DB_NAME
+          - sudo apt-get install -y -qq mysql-client
       jobs:
         - name: ex_unit
           commands:
