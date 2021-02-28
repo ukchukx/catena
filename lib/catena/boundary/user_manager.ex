@@ -1,6 +1,8 @@
 defmodule Catena.Boundary.UserManager do
-  alias Catena.Core.{Habit, User}
+  @moduledoc false
+
   alias Catena.Boundary.{ScheduleManager, Utils}
+  alias Catena.Core.{Habit, User}
 
   use GenServer
   require Logger
@@ -16,17 +18,15 @@ defmodule Catena.Boundary.UserManager do
   end
 
   def add_habit(id, %Habit{} = habit) do
-    with true <- running?(id) do
-      id |> via |> GenServer.call({:add_habit, habit})
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.call({:add_habit, habit})
       false -> :not_running
     end
   end
 
   def remove_habit(id, %Habit{} = habit) do
-    with true <- running?(id) do
-      id |> via |> GenServer.call({:remove_habit, habit})
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.call({:remove_habit, habit})
       false -> :not_running
     end
   end
@@ -40,32 +40,31 @@ defmodule Catena.Boundary.UserManager do
   end
 
   def stop(id) do
-    with %{habits: habits} <- state(id) do
-      Enum.each(habits, &ScheduleManager.stop/1)
+    case state(id) do
+      %{habits: habits} ->
+        Enum.each(habits, &ScheduleManager.stop/1)
+        id |> via |> GenServer.stop()
 
-      id |> via |> GenServer.stop()
-    else
-      _ -> :not_running
+      _ ->
+        :not_running
     end
   end
 
   def state(id) do
-    with true <- running?(id) do
-      id |> via |> GenServer.call(:state)
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.call(:state)
       false -> :not_running
     end
   end
 
   def update(id, params) do
-    with true <- running?(id) do
-      id |> via |> GenServer.call({:update, params})
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.call({:update, params})
       false -> :not_running
     end
   end
 
-  def start_user(user = %User{}) do
+  def start_user(%User{} = user) do
     DynamicSupervisor.start_child(@supervisor, {__MODULE__, user})
   end
 
@@ -75,7 +74,7 @@ defmodule Catena.Boundary.UserManager do
 
   def via(id), do: {:via, Registry, {@registry, id}}
 
-  def child_spec(user = %User{id: id}) do
+  def child_spec(%User{id: id} = user) do
     %{
       id: {__MODULE__, id},
       start: {__MODULE__, :start_link, [user]},
@@ -83,7 +82,7 @@ defmodule Catena.Boundary.UserManager do
     }
   end
 
-  def start_link(user = %User{id: id}) do
+  def start_link(%User{id: id} = user) do
     GenServer.start_link(__MODULE__, user, name: via(id), hibernate_after: 5_000)
   end
 

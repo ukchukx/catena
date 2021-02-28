@@ -8,7 +8,7 @@ defmodule ScheduleAssertions do
   alias Catena.Core.{Habit, HabitHistory}
 
   def days_apart?(date_after, date_before, days) do
-    date_after |> NaiveDateTime.diff(date_before) |> div(86400) |> Kernel.==(days)
+    date_after |> NaiveDateTime.diff(date_before) |> div(86_400) |> Kernel.==(days)
   end
 
   def months_apart?(%{month: m1} = _earlier, %{month: m2} = _later, months),

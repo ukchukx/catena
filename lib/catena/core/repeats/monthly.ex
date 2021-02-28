@@ -1,6 +1,9 @@
 defmodule Catena.Core.Repeats.Monthly do
-  alias Catena.Core.Repeats.Validators
+  @moduledoc false
+
   alias Catena.Core.{Event, Utils}
+  alias Catena.Core.Repeats.Utils, as: RepeatUtils
+  alias Catena.Core.Repeats.Validators
   # FREQ=MONTHLY;INTERVAL=1;BYDAY=1SU,1TU;COUNT=5 - month by day
   # FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=1,2;COUNT=5 - month by date
 
@@ -59,9 +62,6 @@ defmodule Catena.Core.Repeats.Monthly do
 
   @spec inflate(binary) :: {:error, any} | t
   @spec new(non_neg_integer(), keyword) :: {:error, any} | t
-  @spec adds_start_date?(Event.t()) :: boolean
-  @spec next(t(), NaiveDateTime.t()) :: [NaiveDateTime.t()]
-  @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
 
   def inflate("FREQ=MONTHLY;" <> str) do
     params = Utils.repetition_string_to_keyword(str)
@@ -117,7 +117,7 @@ defmodule Catena.Core.Repeats.Monthly do
   def next_occurences(%Event{repeats: %__MODULE__{count: num}} = event, _num),
     do: generate_next_occurences(event, num)
 
-  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
+  defp generate_next_occurences(%Event{repeats: %__MODULE__{} = rule} = event, num) do
     dates =
       {num, event}
       |> Stream.unfold(fn
@@ -125,20 +125,9 @@ defmodule Catena.Core.Repeats.Monthly do
           nil
 
         {n, event = %{start_date: prev_date}} ->
-          next_dates = next(rule, prev_date)
-
-          with true <- is_nil(end_date) do
-            {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-          else
-            false ->
-              next_dates =
-                Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
-
-              case next_dates do
-                [] -> nil
-                _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-              end
-          end
+          rule
+          |> next(prev_date)
+          |> RepeatUtils.accumulate_result(event, n - 1)
       end)
       |> Enum.to_list()
       |> List.flatten()

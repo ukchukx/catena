@@ -1,5 +1,7 @@
 defmodule Catena.Core.Event do
-  alias Catena.Core.Repeats.{Daily, Weekly, Monthly, Yearly}
+  @moduledoc false
+
+  alias Catena.Core.Repeats.{Daily, Monthly, Weekly, Yearly}
 
   defstruct ~w[repeats excludes start_date]a
 
@@ -10,10 +12,7 @@ defmodule Catena.Core.Event do
           start_date: NaiveDateTime.t()
         }
 
-  @spec new(NaiveDateTime.t(), keyword) :: t()
-  @spec next_occurences(t(), nil | repeat()) :: [NaiveDateTime.t()]
   @spec inflate_repetition(binary) :: repeat | nil
-  @spec adds_start_date?(t()) :: boolean | nil
 
   def new(start_date, opts \\ []) do
     attrs = %{
@@ -64,7 +63,7 @@ defmodule Catena.Core.Event do
 
   defp do_adds_start_date?(mod, event), do: apply(mod, :adds_start_date?, [event])
 
-  defp do_next_occurences(mod, event = %{excludes: excludes}, num) do
+  defp do_next_occurences(mod, %{excludes: excludes} = event, num) do
     mod
     |> apply(:next_occurences, [event, num])
     |> Enum.filter(&(&1 not in excludes))

@@ -1,4 +1,6 @@
 defmodule Catena.Core.HabitHistory do
+  @moduledoc false
+
   alias Catena.Core.Habit
 
   defstruct ~w[id habit date done]a
@@ -10,7 +12,6 @@ defmodule Catena.Core.HabitHistory do
           done: boolean
         }
 
-  @spec new(Habit.t(), NaiveDateTime.t(), keyword) :: t()
 
   def new(habit, date, opts \\ []) do
     attrs = %{

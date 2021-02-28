@@ -1,6 +1,9 @@
 defmodule Catena.Core.Repeats.Yearly do
-  alias Catena.Core.Repeats.{Monthly, Validators}
+  @moduledoc false
+
   alias Catena.Core.{Event, Utils}
+  alias Catena.Core.Repeats.{Monthly, Validators}
+  alias Catena.Core.Repeats.Utils, as: RepeatUtils
 
   # FREQ=YEARLY;INTERVAL=1;BYMONTH=1;BYDAY=1SU,1TU;COUNT=5 - year by day
   # FREQ=YEARLY;INTERVAL=1;BYMONTH=1;BYMONTHDAY=1,2;COUNT=5 - year by date
@@ -115,7 +118,7 @@ defmodule Catena.Core.Repeats.Yearly do
   def next_occurences(%Event{repeats: %__MODULE__{count: num}} = event, _num),
     do: generate_next_occurences(event, num)
 
-  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
+  defp generate_next_occurences(%Event{repeats: %__MODULE__{} = rule} = event, num) do
     dates =
       {num, event}
       |> Stream.unfold(fn
@@ -123,20 +126,9 @@ defmodule Catena.Core.Repeats.Yearly do
           nil
 
         {n, event = %{start_date: prev_date}} ->
-          next_dates = next(rule, prev_date)
-
-          with true <- is_nil(end_date) do
-            {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-          else
-            false ->
-              next_dates =
-                Enum.filter(next_dates, &(Utils.earlier?(&1, end_date) or &1 == end_date))
-
-              case next_dates do
-                [] -> nil
-                _ -> {next_dates, {n - 1, %{event | start_date: List.last(next_dates)}}}
-              end
-          end
+          rule
+          |> next(prev_date)
+          |> RepeatUtils.accumulate_result(event, n - 1)
       end)
       |> Enum.to_list()
       |> List.flatten()

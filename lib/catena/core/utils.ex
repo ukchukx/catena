@@ -1,4 +1,6 @@
 defmodule Catena.Core.Utils do
+  @moduledoc false
+
   alias Comeonin.Bcrypt
 
   @spec earlier?(NaiveDateTime.t(), NaiveDateTime.t()) :: boolean
@@ -28,7 +30,7 @@ defmodule Catena.Core.Utils do
   def same_day?(%{year: y, month: m, day: d}, %{year: y, month: m, day: d}), do: true
   def same_day?(_dt1, _dt2), do: false
 
-  def days_to_seconds(days), do: days * 86400
+  def days_to_seconds(days), do: days * 86_400
 
   def weekday(dt) do
     dt

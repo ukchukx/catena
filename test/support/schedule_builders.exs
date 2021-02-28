@@ -2,14 +2,14 @@ defmodule ScheduleBuilders do
   defmacro __using__(_options) do
     quote do
       alias Catena.Core.{Event, Habit, HabitHistory, Schedule, User}
-      alias Catena.Core.Repeats.{Daily, Weekly, Monthly, Yearly}
+      alias Catena.Core.Repeats.{Daily, Monthly, Weekly, Yearly}
 
       import ScheduleBuilders, only: :functions
     end
   end
 
   alias Catena.Core.{Event, Habit, HabitHistory, Schedule, User}
-  alias Catena.Core.Repeats.{Daily, Weekly, Monthly, Yearly}
+  alias Catena.Core.Repeats.{Daily, Monthly, Weekly, Yearly}
 
   def daily_event(start_date, interval),
     do: Event.new(start_date, repeats: Daily.new(interval))

@@ -1,6 +1,8 @@
 defmodule Catena.Boundary.ScheduleManager do
-  alias Catena.Core.{Habit, Schedule}
+  @moduledoc false
+
   alias Catena.Boundary.Utils
+  alias Catena.Core.{Habit, Schedule}
   use GenServer
 
   @supervisor Catena.Supervisor.ScheduleManager
@@ -22,46 +24,41 @@ defmodule Catena.Boundary.ScheduleManager do
   end
 
   def stop(id) do
-    with true <- running?(id) do
-      id |> via |> GenServer.stop()
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.stop()
       false -> :not_running
     end
   end
 
   def state(id) do
-    with true <- running?(id) do
-      id |> via |> GenServer.call(:state)
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.call(:state)
       false -> :not_running
     end
   end
 
   def mark_pending(id, %NaiveDateTime{} = date) do
-    with true <- running?(id) do
-      id |> via |> GenServer.call({:mark_pending, date})
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.call({:mark_pending, date})
       false -> :not_running
     end
   end
 
   def mark_past(id, %NaiveDateTime{} = date) do
-    with true <- running?(id) do
-      id |> via |> GenServer.call({:mark_past, date})
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.call({:mark_past, date})
       false -> :not_running
     end
   end
 
   def update_habit(id, %{} = params) do
-    with true <- running?(id) do
-      id |> via |> GenServer.call({:update_habit, params})
-    else
+    case running?(id) do
+      true -> id |> via |> GenServer.call({:update_habit, params})
       false -> :not_running
     end
   end
 
-  def run_schedule(schedule = %Schedule{}) do
+  def run_schedule(%Schedule{} = schedule) do
     DynamicSupervisor.start_child(@supervisor, {__MODULE__, schedule})
   end
 
@@ -71,7 +68,7 @@ defmodule Catena.Boundary.ScheduleManager do
 
   def via(id), do: {:via, Registry, {@registry, id}}
 
-  def child_spec(schedule = %Schedule{habit: %Habit{id: id}}) do
+  def child_spec(%Schedule{habit: %Habit{id: id}} = schedule) do
     %{
       id: {__MODULE__, id},
       start: {__MODULE__, :start_link, [schedule]},
@@ -79,7 +76,7 @@ defmodule Catena.Boundary.ScheduleManager do
     }
   end
 
-  def start_link(schedule = %Schedule{habit: %Habit{id: id}}) do
+  def start_link(%Schedule{habit: %Habit{id: id}} = schedule) do
     GenServer.start_link(__MODULE__, schedule, name: via(id), hibernate_after: 5_000)
   end
 

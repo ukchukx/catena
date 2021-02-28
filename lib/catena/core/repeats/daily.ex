@@ -1,6 +1,9 @@
 defmodule Catena.Core.Repeats.Daily do
-  alias Catena.Core.Repeats.Validators
+  @moduledoc false
+
   alias Catena.Core.{Event, Utils}
+  alias Catena.Core.Repeats.Utils, as: RepeatUtils
+  alias Catena.Core.Repeats.Validators
   # FREQ=DAILY;INTERVAL=1;COUNT=5 - every day
   # FREQ=DAILY;INTERVAL=2 - every other day
 
@@ -15,8 +18,6 @@ defmodule Catena.Core.Repeats.Daily do
 
   @spec inflate(binary) :: {:error, any} | t
   @spec new(non_neg_integer(), keyword) :: {:error, any} | t
-  @spec next(t(), NaiveDateTime.t()) :: NaiveDateTime.t()
-  @spec next_occurences(Event.t(), non_neg_integer()) :: [NaiveDateTime.t()]
 
   def inflate("FREQ=DAILY;" <> str) do
     params = Utils.repetition_string_to_keyword(str)
@@ -40,7 +41,7 @@ defmodule Catena.Core.Repeats.Daily do
     generate_next_occurences(event, num)
   end
 
-  defp generate_next_occurences(%Event{repeats: %__MODULE__{until: end_date} = rule} = event, num) do
+  defp generate_next_occurences(%Event{repeats: %__MODULE__{} = rule} = event, num) do
     dates =
       {num, event}
       |> Stream.unfold(fn
@@ -48,17 +49,9 @@ defmodule Catena.Core.Repeats.Daily do
           nil
 
         {n, event = %{start_date: prev_date}} ->
-          next_date = next(rule, prev_date)
-
-          with true <- is_nil(end_date) do
-            {next_date, {n - 1, %{event | start_date: next_date}}}
-          else
-            false ->
-              case Utils.earlier?(next_date, end_date) or next_date == end_date do
-                true -> {next_date, {n - 1, %{event | start_date: next_date}}}
-                false -> nil
-              end
-          end
+          rule
+          |> next(prev_date)
+          |> RepeatUtils.accumulate_daily_result(event, n - 1)
       end)
       |> Enum.to_list()
 
