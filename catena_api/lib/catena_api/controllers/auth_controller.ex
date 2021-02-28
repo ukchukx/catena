@@ -112,19 +112,19 @@ defmodule CatenaApi.AuthController do
         |> put_status(406)
         |> json(%{success: false, message: "Reset token expired"})
 
-      err ->
-        Logger.warn("Reset token for '#{email}' could not be deleted: #{inspect(err)}")
-
-        conn
-        |> put_status(500)
-        |> json(%{success: false, message: "Reset token could not be deleted"})
-
       nil ->
         Logger.warn("Reset token (or user process) for '#{email}' does not exist")
 
         conn
         |> put_status(400)
         |> json(%{success: false, message: "Reset token not found"})
+
+      err ->
+        Logger.warn("Reset token for '#{email}' could not be deleted: #{inspect(err)}")
+
+        conn
+        |> put_status(500)
+        |> json(%{success: false, message: "Reset token could not be deleted"})
     end
   end
 

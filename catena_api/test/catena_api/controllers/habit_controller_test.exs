@@ -41,7 +41,7 @@ defmodule CatenaApi.HabitControllerTest do
   end
 
   describe "creating a habit" do
-    test "succeeds with valid params", %{conn: conn, user: %{id: user_id}} do
+    test "succeeds with valid params", %{conn: conn} do
       attrs = %{
         title: "Test habit",
         start_date: NaiveDateTime.to_iso8601(~N[2020-10-01 00:00:00]),
@@ -54,7 +54,6 @@ defmodule CatenaApi.HabitControllerTest do
 
       assert json["success"]
       assert get_in(json, ["data", "title"]) == attrs.title
-      assert get_in(json, ["data", "user", "id"]) == user_id
     end
   end
 
@@ -88,7 +87,7 @@ defmodule CatenaApi.HabitControllerTest do
   describe "deleting a user's habit" do
     test "succeeds if the owner requests", %{conn: conn, habit: %{id: habit_id}} do
       conn = delete(conn, Routes.habit_path(conn, :habit, habit_id))
-      assert json_response(conn, 204)
+      assert response(conn, 204)
     end
 
     test "fails if the requester if not owner", %{conn: conn} do
