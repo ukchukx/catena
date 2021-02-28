@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: catena-db
-        image: mysql:8.0
+        image: mysql:5.7
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3600
