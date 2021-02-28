@@ -25,7 +25,8 @@ blocks:
         commands:
           - checkout
           - cd catena_api
-          - sem-version elixir 1.9
+          - kiex install 1.11
+          - sem-version elixir 1.11
           - mix local.hex --force
           - mix local.rebar --force
       jobs:
@@ -44,7 +45,8 @@ blocks:
         commands:
           - checkout
           - cd catena_api
-          - sem-version elixir 1.9
+          - kiex install 1.11
+          - sem-version elixir 1.11
           - mix local.hex --force
           - mix local.rebar --force
           - cache restore
@@ -67,7 +69,8 @@ blocks:
         commands:
           - checkout
           - cd catena_api
-          - sem-version elixir 1.9
+          - kiex install 1.11
+          - sem-version elixir 1.11
           - mix local.hex --force
           - mix local.rebar --force
           - cache restore
