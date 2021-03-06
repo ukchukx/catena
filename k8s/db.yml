@@ -25,13 +25,17 @@ spec:
         - name: catena-data
           mountPath: /var/lib/mysql
         env:
-        - name: MYSQL_ROOT_PASSWORD
+        - name: MYSQL_PASSWORD
           valueFrom:
             secretKeyRef:
               name: catena-secrets
               key: dbPass
         - name: MYSQL_DATABASE
           value: 'catena'
+        - name: MYSQL_USER
+          value: 'catena'
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: 'yes'
       volumes:
       - name: catena-data
         hostPath:
