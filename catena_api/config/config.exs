@@ -7,11 +7,9 @@
 # General application configuration
 use Mix.Config
 
-catena_host = System.get_env("CATENA_HOST_NAME", "example.com")
-
 # Configures the endpoint
 config :catena_api, CatenaApi.Endpoint,
-  url: [host: catena_host],
+  url: [host: {:system, "CATENA_HOST_NAME", "example.com"}],
   http: [
     port: {:system, :integer, "CATENA_HOST_PORT", 4000},
     transport_options: [socket_opts: [:inet6]]
@@ -20,7 +18,7 @@ config :catena_api, CatenaApi.Endpoint,
   render_errors: [view: CatenaApi.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: CatenaApi.PubSub,
   live_view: [signing_salt: "cG66nitf"],
-  check_origin: ["//127.0.0.1:8080", "//#{catena_host}"]
+  check_origin: false
 
 # Configures Elixir's Logger
 config :logger, :console,
