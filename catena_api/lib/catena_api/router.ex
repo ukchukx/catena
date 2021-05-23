@@ -1,5 +1,10 @@
 defmodule CatenaApi.Router do
+  @moduledoc false
+
   use CatenaApi, :router
+
+  forward "/health/live", Healthchex.Probes.Liveness
+  forward "/health/ready", Healthchex.Probes.Readiness
 
   pipeline :api do
     plug :accepts, ["json"]

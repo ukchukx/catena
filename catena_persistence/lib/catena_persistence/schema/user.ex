@@ -1,4 +1,6 @@
 defmodule CatenaPersistence.User do
+  @moduledoc false
+
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -7,10 +9,10 @@ defmodule CatenaPersistence.User do
   @fields ~w[id email username password archived]a
 
   schema "users" do
-    field :email, :string
-    field :username, :string
-    field :password, :string
-    field :archived, :boolean, default: false
+    field(:email, :string)
+    field(:username, :string)
+    field(:password, :string)
+    field(:archived, :boolean, default: false)
 
     timestamps(type: :utc_datetime)
   end

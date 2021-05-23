@@ -1,4 +1,6 @@
 defmodule Catena.Core.User do
+  @moduledoc false
+
   defstruct [:id, :username, :email, :password, archived: false]
 
   @type t :: %{

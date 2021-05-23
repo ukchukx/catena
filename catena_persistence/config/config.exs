@@ -13,7 +13,6 @@ config :catena_persistence, CatenaPersistence.Repo,
   collation: "utf8mb4_unicode_ci",
   telemetry_prefix: [:catena, :repo]
 
-
 config :logger, level: :info
 
 import_config "#{Mix.env()}.exs"

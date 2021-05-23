@@ -1,4 +1,6 @@
 defmodule Catena.Boundary.UserValidator do
+  @moduledoc false
+
   import Catena.Boundary.Validator
 
   def errors(fields) when is_map(fields) do

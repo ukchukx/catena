@@ -1,4 +1,6 @@
 defmodule Catena.Core.Schedule do
+  @moduledoc false
+
   alias Catena.Core.{Habit, HabitHistory, User, Utils}
 
   @enforce_keys ~w[habit]a
@@ -10,18 +12,6 @@ defmodule Catena.Core.Schedule do
           future_events: [HabitHistory.t()]
         }
   @type mark_result :: {t(), nil | HabitHistory.t()}
-
-  @spec new(
-          Habit.t(),
-          [HabitHistory.t()],
-          NaiveDateTime.t(),
-          NaiveDateTime.t(),
-          NaiveDateTime.t()
-        ) :: t()
-  @spec pending?(t(), NaiveDateTime.t()) :: boolean
-  @spec update_events(t(), NaiveDateTime.t()) :: t()
-  @spec mark_pending_event(t(), NaiveDateTime.t()) :: mark_result
-  @spec mark_past_event(t(), NaiveDateTime.t()) :: mark_result
 
   def new(habit, habit_history, start_date, end_date, current_date) do
     slim_habit = %Habit{

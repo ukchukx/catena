@@ -1,4 +1,6 @@
 defmodule Catena do
+  @moduledoc false
+
   alias Catena.Boundary.{PasswordReset, ScheduleManager, UserManager, UserValidator}
   alias Catena.Core.{Event, Habit, HabitHistory, Schedule, User, Utils}
 
@@ -11,14 +13,13 @@ defmodule Catena do
       email |> User.new(Keyword.new(map)) |> start_user_process
     end)
 
-    num_users_loaded = Catena.Boundary.UserManager.active_users() |> length
+    num_users_loaded = UserManager.active_users() |> length
     Logger.info("Loaded #{num_users_loaded} user(s)")
   end
 
   @spec stop :: :ok
   def stop, do: UserManager.active_users() |> Enum.each(&UserManager.stop/1)
 
-  @spec start_user_process(User.t()) :: User.t()
   def start_user_process(user = %User{id: id}) when not is_nil(id) do
     UserManager.start_user(user)
 
@@ -34,7 +35,7 @@ defmodule Catena do
   end
 
   @spec restart_user_schedules(User.t(), [binary]) :: [Schedule.t()]
-  def restart_user_schedules(user = %{id: id}, habit_ids) do
+  def restart_user_schedules(%{id: id} = user, habit_ids) do
     persistence_module().user_habits(id)
     |> Enum.filter(&(&1.id in habit_ids))
     |> Enum.map(fn habit = %{events: events} ->
@@ -43,7 +44,6 @@ defmodule Catena do
     |> Enum.map(&start_schedule_from_habit/1)
   end
 
-  @spec start_schedule_process(Habit.t()) :: Schedule.t()
   def start_schedule_process(habit = %Habit{id: id, user: user}) when not is_nil(id) do
     schedule = start_schedule_from_habit(habit)
     UserManager.add_habit(user.id, habit)
@@ -85,7 +85,6 @@ defmodule Catena do
     end
   end
 
-  @spec new_habit(binary, User.t(), [Event.t()], keyword) :: Habit.t()
   def new_habit(title, %User{} = user, events, opts \\ []) when is_binary(title) do
     start_schedule_process_fn =
       Keyword.get(opts, :start_schedule_process_fn, &start_schedule_process/1)
@@ -133,7 +132,6 @@ defmodule Catena do
     end
   end
 
-  @spec get_user(keyword) :: nil | User.t()
   def get_user(id: id) do
     case UserManager.state(id) do
       :not_running -> nil
@@ -154,7 +152,6 @@ defmodule Catena do
     end
   end
 
-  @spec get_habits(binary) :: [Schedule.t()]
   def get_habits(user_id) do
     case UserManager.state(user_id) do
       :not_running -> []
@@ -162,7 +159,6 @@ defmodule Catena do
     end
   end
 
-  @spec get_habit(binary) :: nil | Schedule.t()
   def get_habit(id) do
     case ScheduleManager.state(id) do
       :not_running -> nil
@@ -170,7 +166,6 @@ defmodule Catena do
     end
   end
 
-  @spec delete_habit(binary) :: :ok
   def delete_habit(id) do
     case get_habit(id) do
       nil ->
@@ -183,7 +178,6 @@ defmodule Catena do
     end
   end
 
-  @spec update_habit(binary, map) :: Habit.t() | nil
   def update_habit(id, params) do
     case get_habit(id) do
       nil ->
@@ -200,15 +194,15 @@ defmodule Catena do
     end
   end
 
-  @spec add_event(binary, map) :: Habit.t() | nil
-  def add_event(id, event_params = %{start_date: start_date}) do
+  def add_event(id, %{start_date: start_date} = event_params) do
     case get_habit(id) do
       nil ->
         nil
 
       %{habit: %Habit{events: events} = habit} ->
-         # End current event a day before start_date
-        day_before_start_date = NaiveDateTime.add(start_date, -86400)
+        # End current event a day before start_date
+        day_before_start_date = NaiveDateTime.add(start_date, -86_400)
+
         last_event =
           case List.last(events) do
             %{repeats: nil} = last_event ->
@@ -274,29 +268,24 @@ defmodule Catena do
     end
   end
 
-  @spec save_user(User.t()) :: User.t()
   def save_user(user), do: persistence_module().save_user(user, &Utils.new_id/0)
 
-  @spec save_habit(Habit.t()) :: Habit.t()
   def save_habit(habit), do: persistence_module().save_habit(habit, &Utils.new_id/0)
 
-  @spec save_habit_history(HabitHistory.t()) :: HabitHistory.t()
   def save_habit_history(history),
     do: persistence_module().save_habit_history(history, &Utils.new_id/0)
 
-  @spec flush_habit(Habit.t()) :: :ok
   def flush_habit(habit), do: persistence_module().delete_habit(habit)
 
-  @spec persistence_module :: atom
   def persistence_module, do: Application.get_env(:catena, :persistence_module)
 
   #
   #
   #
 
-  defp inflate_event(map = %{repeats: nil, start_date: s}), do: Event.new(s, Keyword.new(map))
+  defp inflate_event(%{repeats: nil, start_date: s} = map), do: Event.new(s, Keyword.new(map))
 
-  defp inflate_event(map = %{repeats: repeats, start_date: s}) do
+  defp inflate_event(%{repeats: repeats, start_date: s} = map) do
     Event.new(s, Keyword.new(%{map | repeats: Event.inflate_repetition(repeats)}))
   end
 
@@ -308,7 +297,7 @@ defmodule Catena do
 
   defp end_of_year(date_time), do: %{date_time | month: 12, day: 31, hour: 23}
 
-  defp start_schedule_from_habit(habit = %Habit{id: id, user: user}) do
+  defp start_schedule_from_habit(%Habit{id: id, user: user} = habit) do
     slim_habit = %Habit{
       user: %User{id: user.id},
       id: id,

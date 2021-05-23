@@ -2,13 +2,14 @@ defmodule CatenaTest do
   alias Catena.Boundary.{ScheduleManager, UserManager}
   alias Catena.Core.{Event, Habit, HabitHistory, Schedule, User, Utils}
   alias Catena.Core.Repeats.Daily
+  alias Ecto.Adapters.SQL.Sandbox
 
   use ExUnit.Case, async: true
 
   @moduletag :boundary
 
   setup _tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(CatenaPersistence.Repo)
+    :ok = Sandbox.checkout(CatenaPersistence.Repo)
     UserManager.active_users() |> Enum.each(&UserManager.stop/1)
     {:ok, %{}}
   end

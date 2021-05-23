@@ -1,5 +1,7 @@
 defmodule Catena.Core.Habit do
-  alias Catena.Core.{HabitHistory, Event, User, Utils}
+  @moduledoc false
+
+  alias Catena.Core.{Event, HabitHistory, User, Utils}
 
   defstruct ~w[user id title events visibility archived]a
 
@@ -12,7 +14,6 @@ defmodule Catena.Core.Habit do
           events: [Event.t()]
         }
 
-  @spec new(String.t(), User.t(), [Event.t()], keyword) :: t()
   @spec history_for_date([HabitHistory.t()], NaiveDateTime.t()) :: HabitHistory.t() | nil
 
   def new(title, user, events, opts \\ []) do
@@ -52,6 +53,14 @@ defmodule Catena.Core.Habit do
     end
   end
 
+  defp select_end_date(end_date, until) do
+    cond do
+      is_nil(until) -> end_date
+      Utils.earlier?(end_date, until) -> end_date
+      true -> until
+    end
+  end
+
   defp generate_dates(%Event{repeats: repeats} = event, start_date, end_date) do
     # if event date is later than start date, use event date
     # if event date is earlier than start date, use start date
@@ -74,12 +83,7 @@ defmodule Catena.Core.Habit do
           end
       end
 
-    end_date =
-      cond do
-        is_nil(repeats.until) -> end_date
-        Utils.earlier?(end_date, repeats.until) -> end_date
-        true -> repeats.until
-      end
+    end_date = select_end_date(end_date, repeats.until)
 
     case Utils.earlier?(end_date, start_date) do
       true -> []

@@ -1,4 +1,7 @@
 defmodule CatenaApi.Utils do
+  @moduledoc false
+  alias Catena.Core.Utils
+
   def user_to_map(user), do: user |> Map.from_struct() |> Map.drop(~w[__struct__ password]a)
 
   def schedule_to_map(%{habit: habit, past_events: past, future_events: future}) do
@@ -12,7 +15,7 @@ defmodule CatenaApi.Utils do
     |> Map.put(:events, events)
   end
 
-  def habit_history_to_map(history = %{date: date}) do
+  def habit_history_to_map(%{date: date} = history) do
     data = CatenaPersistence.HabitHistory.from_model(history)
 
     data
@@ -30,17 +33,16 @@ defmodule CatenaApi.Utils do
       fn {field, _message} -> field end,
       fn {_field, message} -> message end
     )
-    |> Map.new
+    |> Map.new()
   end
 
-  def valid_token?(token, token_hash), do: Catena.Core.Utils.validate_password(token, token_hash)
+  def valid_token?(token, token_hash), do: Utils.validate_password(token, token_hash)
 
   def expiry_ttl_in_seconds, do: Application.get_env(:catena_api, :password_reset_ttl) * 60
 
   if Application.get_env(:catena, :env) == :test do
     def send_email(_email, _token), do: :ok
   else
-    # TODO: Complete
     def send_email(email, token) do
       _text = email_text(email, token)
       _subject = "Password Reset"

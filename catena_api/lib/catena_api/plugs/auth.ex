@@ -1,4 +1,6 @@
 defmodule CatenaApi.Plug.Auth do
+  @moduledoc false
+
   import Plug.Conn
   require Logger
 
@@ -18,7 +20,7 @@ defmodule CatenaApi.Plug.Auth do
         unauthorized(conn)
 
       err ->
-        Logger.warn("Authorization to '#{path}' failed with #{inspect err}")
+        Logger.warn("Authorization to '#{path}' failed with #{inspect(err)}")
         unauthorized(conn)
     end
   end

@@ -1,4 +1,6 @@
 defmodule Catena.Boundary.Validator do
+  @moduledoc false
+
   def require(errors, fields, field_name, validator) do
     present = Map.has_key?(fields, field_name)
     check_required_field(present, fields, errors, field_name, validator)

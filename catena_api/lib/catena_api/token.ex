@@ -1,4 +1,6 @@
 defmodule CatenaApi.Token do
+  @moduledoc false
+
   use Joken.Config
 
   def token_config,

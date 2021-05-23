@@ -1,4 +1,6 @@
 defmodule Catena.Boundary.PasswordReset do
+  @moduledoc false
+
   use GenServer
 
   def get(email), do: GenServer.call(__MODULE__, {:get, email})

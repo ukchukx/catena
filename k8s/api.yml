@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catena-api
+  namespace: catena
+  labels:
+    app: catena
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catena-api
+  template:
+    metadata:
+      labels:
+        app: catena-api
+    spec:
+      imagePullSecrets:
+      - name: headless-commerce-package-access-token
+      containers:
+      - name: catena-api
+        image: ghcr.io/headless-commerce/catena_api
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4000
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 4000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 4000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        env:
+        - name: CATENA_DB_USER
+          value: 'catena'
+        - name: CATENA_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: catena-secrets
+              key: dbPass
+        - name: CATENA_DB_HOST
+          value: 'catena-db'
+        - name: CATENA_DB_POOL_SIZE
+          value: '15'
+        - name: CATENA_DB_NAME
+          value: 'catena'
+        - name: CATENA_TOKEN_TTL_MINUTES
+          value: '7200'
+        - name: CATENA_PASSWORD_RESET_TTL_MINUTES
+          value: '120'
+        - name: CATENA_HOST_NAME
+          value: 'api.catena.com.ng'
+        - name: CATENA_HOST_PORT
+          value: '4000'
+        - name: CATENA_SECRET_KEY_BASE
+          valueFrom:
+            secretKeyRef:
+              name: catena-secrets
+              key: secretKeyBase
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: catena-api
+  namespace: catena
+spec:
+  ports:
+  - name: web
+    port: 80
+    targetPort: 4000
+  selector:
+    app: catena-api
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: catena-api-web
+  namespace: catena
+spec:
+  entryPoints:
+    - web
+  routes:
+  - kind: Rule
+    match: Host(`api.catena.com.ng`)
+    services:
+    - name: catena-api
+      port: 80
+    middlewares:
+    - name: security
+      namespace: default
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: catena-api-web-tls
+  namespace: catena
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - kind: Rule
+    match: Host(`api.catena.com.ng`)
+    services:
+    - name: catena-api
+      port: 80
+    middlewares:
+    - name: security
+      namespace: default
+  tls:
+    certResolver: le
+    domains:
+    - main: "catena.com.ng"
+      sans:
+      - "*.catena.com.ng"
+    options:
+      name: mytlsoption
+      namespace: default

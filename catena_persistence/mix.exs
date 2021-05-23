@@ -7,8 +7,13 @@ defmodule CatenaPersistence.MixProject do
       version: "1.0.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
+      build_embedded: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      dialyzer: [
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+        plt_add_apps: [:mix]
+      ]
     ]
   end
 
@@ -24,6 +29,8 @@ defmodule CatenaPersistence.MixProject do
   defp deps do
     [
       {:confex, "~> 3.4.0"},
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:ecto_sql, "~> 3.5.1"},
       {:jason, "~> 1.0"},
       {:myxql, "~> 0.4.3"}
@@ -34,7 +41,7 @@ defmodule CatenaPersistence.MixProject do
     [
       setup: ["deps.get", "ecto.create", "ecto.migrate"],
       reset: ["ecto.drop", "setup"],
-      test:  ["ecto.drop --quiet", "ecto.create --quiet", "ecto.migrate --quiet", "test"]
+      test: ["ecto.drop --quiet", "ecto.create --quiet", "ecto.migrate --quiet", "test"]
     ]
   end
 end

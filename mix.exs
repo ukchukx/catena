@@ -9,7 +9,11 @@ defmodule Catena.MixProject do
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      dialyzer: [
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+        plt_add_apps: [:mix]
+      ]
     ]
   end
 
@@ -25,8 +29,10 @@ defmodule Catena.MixProject do
   defp deps do
     [
       {:bcrypt_elixir, "~> 1.0"},
-      {:comeonin, "~> 4.0"},
       {:catena_persistence, path: "./catena_persistence"},
+      {:comeonin, "~> 4.0"},
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:elixir_uuid, "~> 1.2"}
     ]
   end

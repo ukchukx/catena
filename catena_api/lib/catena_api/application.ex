@@ -3,11 +3,12 @@ defmodule CatenaApi.Application do
   # for more information on OTP Applications
   @moduledoc false
 
+  alias CatenaApi.Metrics.Setup
   use Application
 
   def start(_type, _args) do
     Confex.resolve_env!(:catena_api)
-    CatenaApi.Metrics.Setup.setup()
+    Setup.setup()
 
     children = [
       # Start the Telemetry supervisor

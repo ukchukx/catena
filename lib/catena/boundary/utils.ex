@@ -1,4 +1,6 @@
 defmodule Catena.Boundary.Utils do
+  @moduledoc false
+
   @spec child_pid?(tuple, atom) :: boolean
   @spec id_from_pid(tuple, atom, atom) :: [binary]
 

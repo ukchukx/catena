@@ -1,4 +1,6 @@
 defmodule CatenaApi.UserSocket do
+  @moduledoc false
+
   use Phoenix.Socket
 
   require Logger
@@ -19,13 +21,15 @@ defmodule CatenaApi.UserSocket do
   # performing token verification on connect.
   @impl true
   def connect(%{"token" => token}, socket, connect_info) do
-    with {:ok, %{"id" => user_id}} <- CatenaApi.Token.verify_and_validate(token, CatenaApi.Token.signer()) do
-      {:ok, assign(socket, :user_id, user_id)}
-    else
+    case CatenaApi.Token.verify_and_validate(token, CatenaApi.Token.signer()) do
+      {:ok, %{"id" => user_id}} ->
+        {:ok, assign(socket, :user_id, user_id)}
+
       err ->
         Logger.warn(
-          "Refuse socket connection: err = #{inspect err}, info = #{inspect connect_info}"
+          "Refuse socket connection: err = #{inspect(err)}, info = #{inspect(connect_info)}"
         )
+
         :error
     end
   end
@@ -43,6 +47,6 @@ defmodule CatenaApi.UserSocket do
   #
   # Returning `nil` makes this socket anonymous.
   @impl true
-  def id(_socket = %{assigns: %{user_id: id}}), do: "user_socket:#{id}"
+  def id(%{assigns: %{user_id: id}} = _socket), do: "user_socket:#{id}"
   def id(_socket), do: nil
 end

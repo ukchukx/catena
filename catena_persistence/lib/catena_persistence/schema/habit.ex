@@ -1,4 +1,6 @@
 defmodule CatenaPersistence.Habit do
+  @moduledoc false
+
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -7,11 +9,11 @@ defmodule CatenaPersistence.Habit do
   @fields ~w[user_id id title events visibility archived]a
 
   schema "habits" do
-    field :user_id, :binary_id
-    field :title, :string
-    field :visibility, :string
-    field :archived, :boolean
-    field :events, :map
+    field(:user_id, :binary_id)
+    field(:title, :string)
+    field(:visibility, :string)
+    field(:archived, :boolean)
+    field(:events, :map)
 
     timestamps(type: :utc_datetime)
   end
@@ -66,6 +68,7 @@ defmodule CatenaPersistence.Habit do
   defp serialize_repeats(event), do: to_string(event)
 
   def serialize_excludes([]), do: nil
+
   def serialize_excludes(excludes) do
     excludes
     |> Enum.map(&NaiveDateTime.to_iso8601/1)
@@ -73,6 +76,7 @@ defmodule CatenaPersistence.Habit do
   end
 
   def deserialize_excludes(nil), do: []
+
   def deserialize_excludes(excludes) do
     excludes
     |> String.split(",", trim: true)

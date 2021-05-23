@@ -9,8 +9,13 @@ defmodule CatenaApi.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
+      build_embedded: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      dialyzer: [
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+        plt_add_apps: [:mix]
+      ]
     ]
   end
 
@@ -36,7 +41,10 @@ defmodule CatenaApi.MixProject do
       {:atomize_keys, "~> 1.1"},
       {:catena, path: ".."},
       {:cors_plug, "~> 1.4"},
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:gettext, "~> 0.11"},
+      {:healthchex, "~> 0.2"},
       {:jason, "~> 1.0"},
       {:joken, "~> 2.3"},
       {:observer_cli, "~> 1.5"},

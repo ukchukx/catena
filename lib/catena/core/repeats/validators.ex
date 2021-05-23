@@ -1,4 +1,6 @@
 defmodule Catena.Core.Repeats.Validators do
+  @moduledoc false
+
   def validate(%{} = attrs, extra_validators \\ []) do
     extra_validators
     |> Kernel.++([&validate_interval/1, &validate_count_or_until/1])

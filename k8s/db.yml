@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catena-db
+  namespace: catena
+  labels:
+    app: catena-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catena-db
+  template:
+    metadata:
+      labels:
+        app: catena-db
+    spec:
+      containers:
+      - name: catena-db
+        image: mysql:5.7
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: catena-data
+          mountPath: /var/lib/mysql
+        env:
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: catena-secrets
+              key: dbPass
+        - name: MYSQL_DATABASE
+          value: 'catena'
+        - name: MYSQL_USER
+          value: 'catena'
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: 'yes'
+      volumes:
+      - name: catena-data
+        hostPath:
+          path: /var/microk8s/data/catena/data
+          type: DirectoryOrCreate
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: catena-db
+  namespace: catena
+spec:
+  ports:
+  - name: mysql
+    port: 3306
+  selector:
+    app: catena-db

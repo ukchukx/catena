@@ -1,7 +1,8 @@
 defmodule CatenaPersistence do
-  import Ecto.Query, only: [from: 2]
-  alias CatenaPersistence.{Habit, HabitHistory, User, Repo}
+  @moduledoc false
 
+  alias CatenaPersistence.{Habit, HabitHistory, Repo, User}
+  import Ecto.Query, only: [from: 2]
 
   @spec save_user(struct, function) :: struct
   @spec save_habit_history(struct, function) :: struct
@@ -38,7 +39,7 @@ defmodule CatenaPersistence do
   end
 
   def users(archived \\ false),
-    do: User |> from(where: [archived: ^archived]) |> Repo.all |> Enum.map(&User.to_map/1)
+    do: User |> from(where: [archived: ^archived]) |> Repo.all() |> Enum.map(&User.to_map/1)
 
   def get_user(id) do
     case Repo.get(User, id) do
@@ -71,57 +72,56 @@ defmodule CatenaPersistence do
   def user_habits(user_id) do
     Habit
     |> from(where: [user_id: ^user_id])
-    |> Repo.all
+    |> Repo.all()
     |> Enum.map(&Habit.to_map/1)
   end
 
   def habit_history_for_habit(habit_id) do
     HabitHistory
     |> from(where: [habit_id: ^habit_id])
-    |> Repo.all
+    |> Repo.all()
     |> Enum.map(&HabitHistory.to_map/1)
   end
 
   def habit_history_for_user(user_id) do
     HabitHistory
     |> from(where: [user_id: ^user_id])
-    |> Repo.all
+    |> Repo.all()
     |> Enum.map(&HabitHistory.to_map/1)
   end
 
   def delete_habit(%{id: id} = _habit) do
     HabitHistory
     |> from(where: [habit_id: ^id])
-    |> Repo.delete_all
+    |> Repo.delete_all()
 
     Habit
     |> from(where: [id: ^id])
-    |> Repo.delete_all
+    |> Repo.delete_all()
 
     :ok
   end
 
-  defp save(schema, model = %{id: id}, id_fn) do
+  defp save(schema, %{id: id} = model, id_fn) do
     case id do
       nil ->
         %{model | id: id_fn.()}
         |> schema.changeset
-        |> Repo.insert
-        |> case do
-          {:ok, record} -> record
-          _  -> nil
-        end
-      _ ->
-        schema
-        |> Repo.get(id)
-        |> schema.changeset(model)
-        |> Repo.update
+        |> Repo.insert()
         |> case do
           {:ok, record} -> record
           _ -> nil
         end
 
+      _ ->
+        schema
+        |> Repo.get(id)
+        |> schema.changeset(model)
+        |> Repo.update()
+        |> case do
+          {:ok, record} -> record
+          _ -> nil
+        end
     end
   end
-
 end
