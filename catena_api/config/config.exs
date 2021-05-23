@@ -9,7 +9,7 @@ use Mix.Config
 
 # Configures the endpoint
 config :catena_api, CatenaApi.Endpoint,
-  url: [host: {:system, "CATENA_HOST_NAME", "example.com"}],
+  url: [host: {:system, "CATENA_HOST_NAME", "example.com"}, scheme: "https"],
   http: [
     port: {:system, :integer, "CATENA_HOST_PORT", 4000},
     transport_options: [socket_opts: [:inet6]]
