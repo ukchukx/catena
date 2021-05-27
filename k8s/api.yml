@@ -44,9 +44,9 @@ spec:
               name: catena-secrets
               key: dbPass
         - name: CATENA_DB_HOST
-          value: 'catena-db'
+          value: 'mysql'
         - name: CATENA_DB_POOL_SIZE
-          value: '15'
+          value: '7'
         - name: CATENA_DB_NAME
           value: 'catena'
         - name: CATENA_TOKEN_TTL_MINUTES

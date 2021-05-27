@@ -14,7 +14,7 @@ blocks:
           commands:
           - cache restore k8s-$SEMAPHORE_WORKFLOW_ID
           - chmod 0600 ~/j-master-ssh/id_rsa*
-          - scp -i ~/j-master-ssh/id_rsa -o StrictHostKeyChecking=no k8s/{api,db}.yml ubuntu@212.71.237.8:~/apps/catena/
+          - scp -i ~/j-master-ssh/id_rsa -o StrictHostKeyChecking=no k8s/api.yml ubuntu@212.71.237.8:~/apps/catena/
 
   - name: Deploy
     task:
@@ -24,4 +24,4 @@ blocks:
         - name: deploy
           commands:
           - chmod 0600 ~/j-master-ssh/id_rsa*
-          - ssh -i ~/j-master-ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@212.71.237.8 'cd ~/apps/catena;/snap/bin/microk8s kubectl apply -f db.yml;/snap/bin/microk8s kubectl apply -f api.yml'
+          - ssh -i ~/j-master-ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@212.71.237.8 'cd ~/apps/catena;/snap/bin/microk8s kubectl apply -f api.yml'
