@@ -24,4 +24,4 @@ blocks:
         - name: deploy
           commands:
           - chmod 0600 ~/j-master-ssh/id_rsa*
-          - ssh -i ~/j-master-ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@212.71.237.8 'cd ~/apps/catena;/snap/bin/microk8s kubectl rollout restart deployment catena-api'
+          - ssh -i ~/j-master-ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@212.71.237.8 'cd ~/apps/catena;/snap/bin/microk8s kubectl -n catena rollout restart deployment catena-api'
