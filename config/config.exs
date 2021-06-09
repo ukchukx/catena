@@ -1,12 +1,10 @@
 use Mix.Config
 
 config :catena,
-  persistence_module: CatenaPersistence
-
-config :catena_persistence,
+  persistence_module: CatenaPersistence,
   ecto_repos: [CatenaPersistence.Repo]
 
-config :catena,
+config :catena_persistence,
   ecto_repos: [CatenaPersistence.Repo]
 
 config :catena_persistence, CatenaPersistence.Repo,
@@ -19,10 +17,34 @@ config :catena_persistence, CatenaPersistence.Repo,
   collation: "utf8mb4_unicode_ci",
   telemetry_prefix: [:catena, :repo]
 
-config :logger, level: :info
 
+# Configures the endpoint
+config :catena_api, CatenaApi.Endpoint,
+  url: [host: {:system, "CATENA_HOST_NAME", "example.com"}, scheme: "https"],
+  http: [
+    port: {:system, :integer, "CATENA_HOST_PORT", 4000},
+    transport_options: [socket_opts: [:inet6]]
+  ],
+  secret_key_base: {:system, "CATENA_SECRET_KEY_BASE"},
+  render_errors: [view: CatenaApi.ErrorView, accepts: ~w(json), layout: false],
+  pubsub_server: CatenaApi.PubSub,
+  live_view: [signing_salt: "cG66nitf"],
+  check_origin: false
+
+# Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
-  metadata: []
+  metadata: [:request_id]
+
+config :catena_api,
+  ecto_repos: [CatenaPersistence.Repo],
+  password_reset_ttl: {:system, :integer, "CATENA_PASSWORD_RESET_TTL_MINUTES", 120},
+  token_ttl: {:system, :integer, "CATENA_TOKEN_TTL_MINUTES", 120}
+
+
+# Use Jason for JSON parsing in Phoenix
+config :phoenix, :json_library, Jason
+
+config :logger, level: :info
 
 import_config "#{Mix.env()}.exs"

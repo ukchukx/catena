@@ -6,6 +6,7 @@ defmodule CatenaApi.MixProject do
       app: :catena_api,
       version: "1.0.0",
       elixir: "~> 1.10",
+      config_path: "../config/config.exs",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,

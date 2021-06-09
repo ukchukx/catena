@@ -6,6 +6,7 @@ defmodule CatenaPersistence.MixProject do
       app: :catena_persistence,
       version: "1.0.0",
       elixir: "~> 1.10",
+      config_path: "../config/config.exs",
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
       deps: deps(),
