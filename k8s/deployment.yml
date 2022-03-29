@@ -2,9 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: catena-api
-  namespace: catena
   labels:
-    app: catena
+    app: catena-api
 spec:
   replicas: 1
   selector:
@@ -39,15 +38,10 @@ spec:
         env:
         - name: CATENA_DB_USER
           value: 'catena'
-        - name: CATENA_DB_PASS
-          valueFrom:
-            secretKeyRef:
-              name: catena-secrets
-              key: dbPass
         - name: CATENA_DB_HOST
           value: 'mysql'
         - name: CATENA_DB_POOL_SIZE
-          value: '7'
+          value: '10'
         - name: CATENA_DB_NAME
           value: 'catena'
         - name: CATENA_TOKEN_TTL_MINUTES
@@ -63,12 +57,19 @@ spec:
             secretKeyRef:
               name: catena-secrets
               key: secretKeyBase
+        - name: CATENA_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: catena-secrets
+              key: dbPass
 ---
 kind: Service
 apiVersion: v1
 metadata:
   name: catena-api
-  namespace: catena
+  labels:
+    app: catena-api
+    release: kube-prometheus-stack
 spec:
   ports:
   - name: web
@@ -76,49 +77,3 @@ spec:
     targetPort: 4000
   selector:
     app: catena-api
----
-
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: catena-api-web
-  namespace: catena
-spec:
-  entryPoints:
-    - web
-  routes:
-  - kind: Rule
-    match: Host(`api.catena.com.ng`)
-    services:
-    - name: catena-api
-      port: 80
-    middlewares:
-    - name: security
-      namespace: default
----
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: catena-api-web-tls
-  namespace: catena
-spec:
-  entryPoints:
-    - websecure
-  routes:
-  - kind: Rule
-    match: Host(`api.catena.com.ng`)
-    services:
-    - name: catena-api
-      port: 80
-    middlewares:
-    - name: security
-      namespace: default
-  tls:
-    certResolver: le
-    domains:
-    - main: "catena.com.ng"
-      sans:
-      - "*.catena.com.ng"
-    options:
-      name: mytlsoption
-      namespace: default

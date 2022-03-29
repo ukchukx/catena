@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: catena-api
+  labels:
+    app: catena-api
+    release: kube-prometheus-stack
+spec:
+  endpoints:
+  - port: web
+    interval: 30s
+    path: '/metrics'
+  namespaceSelector:
+    matchNames:
+    - catena-api
+  selector:
+    matchLabels:
+      app: catena-api
+      release: kube-prometheus-stack

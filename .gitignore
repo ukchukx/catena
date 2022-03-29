@@ -26,4 +26,3 @@ catena-*.tar
 .env*
 **/.idea
 **/*.iml
-/k8s/secrets.yml
