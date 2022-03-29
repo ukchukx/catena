@@ -12,7 +12,7 @@ spec:
     path: '/metrics'
   namespaceSelector:
     matchNames:
-    - catena-api
+    - catena
   selector:
     matchLabels:
       app: catena-api
