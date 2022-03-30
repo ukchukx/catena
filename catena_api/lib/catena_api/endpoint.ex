@@ -18,6 +18,11 @@ defmodule CatenaApi.Endpoint do
 
   socket "/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]]
 
+  # Handle health checks
+  plug CatenaApi.Plug.LivenessProbe
+  plug CatenaApi.Plug.ReadinessProbe
+
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest

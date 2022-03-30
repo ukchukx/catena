@@ -45,7 +45,6 @@ defmodule CatenaApi.MixProject do
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:gettext, "~> 0.11"},
-      {:healthchex, "~> 0.2"},
       {:jason, "~> 1.0"},
       {:joken, "~> 2.3"},
       {:observer_cli, "~> 1.5"},
