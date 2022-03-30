@@ -17,7 +17,6 @@ config :catena_persistence, CatenaPersistence.Repo,
   collation: "utf8mb4_unicode_ci",
   telemetry_prefix: [:catena, :repo]
 
-
 # Configures the endpoint
 config :catena_api, CatenaApi.Endpoint,
   url: [host: {:system, "CATENA_HOST_NAME", "example.com"}, scheme: "https"],
@@ -40,7 +39,6 @@ config :catena_api,
   ecto_repos: [CatenaPersistence.Repo],
   password_reset_ttl: {:system, :integer, "CATENA_PASSWORD_RESET_TTL_MINUTES", 120},
   token_ttl: {:system, :integer, "CATENA_TOKEN_TTL_MINUTES", 120}
-
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
