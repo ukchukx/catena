@@ -84,6 +84,8 @@ blocks:
       jobs:
         - name: ex_unit
           commands:
+            - mix ecto.create
+            - mix ecto.migrate
             - mix test
 
   - name: Build Docker image
