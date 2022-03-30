@@ -22,7 +22,6 @@ defmodule CatenaApi.Endpoint do
   plug CatenaApi.Plug.LivenessProbe
   plug CatenaApi.Plug.ReadinessProbe
 
-
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest

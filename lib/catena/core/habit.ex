@@ -53,14 +53,6 @@ defmodule Catena.Core.Habit do
     end
   end
 
-  defp select_end_date(end_date, until) do
-    cond do
-      is_nil(until) -> end_date
-      Utils.earlier?(end_date, until) -> end_date
-      true -> until
-    end
-  end
-
   defp generate_dates(%Event{repeats: repeats} = event, start_date, end_date) do
     # if event date is later than start date, use event date
     # if event date is earlier than start date, use start date
@@ -88,6 +80,14 @@ defmodule Catena.Core.Habit do
     case Utils.earlier?(end_date, start_date) do
       true -> []
       false -> unroll(%{event | repeats: %{repeats | until: end_date}, start_date: start_date})
+    end
+  end
+
+  defp select_end_date(end_date, until) do
+    cond do
+      is_nil(until) -> end_date
+      Utils.earlier?(end_date, until) -> end_date
+      true -> until
     end
   end
 
